@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Duplinha NES - Emulador Online P2P Co-op 2 Jogadores</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <span class="brand-icon">🎮</span>
+      <span class="brand-title">DUPLINHA NES</span>
+      <span class="brand-badge">P2P CO-OP</span>
+    </div>
+
+    <div class="header-status">
+      <div class="status-pill">
+        <span class="status-dot offline" id="statusDot"></span>
+        <span id="statusText">Modo Offline (Local)</span>
+      </div>
+      <div class="status-pill" title="Latência de rede em tempo real">
+        <span>⚡ PING:</span>
+        <strong id="pingText">--</strong>
+      </div>
+      <div class="status-pill" title="Taxa de quadros do emulador">
+        <span id="fpsBadge">60 FPS</span>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <input type="file" id="romInput" accept=".nes" style="display: none;">
+      <button class="btn btn-primary" id="btnLoadRom" title="Carregar arquivo .nes do seu computador">
+        <span>📁</span> <span>Carregar ROM</span>
+      </button>
+      <button class="btn" id="loadPongBtn" title="Carregar o jogo Pong clássico de 2 jogadores">
+        <span>🕹️</span> <span>Pong (2P)</span>
+      </button>
+      <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
+        <span>🔗</span> <span>Jogar Online (P2P)</span>
+      </button>
+      <button class="btn" id="btnControls" title="Ver e ajustar mapeamento de botões">
+        <span>⚙️</span> <span>Controles</span>
+      </button>
+      <button class="btn" id="btnScanlines" title="Alternar filtro CRT retrô">
+        <span>📺</span> <span>Scanlines</span>
+      </button>
+      <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
+        <span>⛶</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport (Screen Cabinet) -->
+  <main class="main-viewport">
+    <div class="screen-cabinet">
+      <!-- Host / Local Emulator Canvas -->
+      <canvas id="nesCanvas"></canvas>
+
+      <!-- Client P2P Live Stream Video -->
+      <video id="remoteVideo" autoplay playsinline></video>
+
+      <!-- Retro CRT Scanlines Overlay -->
+      <div class="scanlines-overlay" id="scanlines"></div>
+
+      <!-- Drag and Drop Overlay -->
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-icon">💾</div>
+        <div class="drop-text">SOLTE A ROM NES AQUI<br>(Arquivo .nes)</div>
+      </div>
+    </div>
+
+    <!-- On-screen Virtual Touch Gamepad for Mobile/Tablets -->
+    <div class="touch-controls" id="touchControls">
+      <div class="touch-dpad">
+        <div class="touch-btn dpad-up" data-button="BUTTON_UP">▲</div>
+        <div class="touch-btn dpad-down" data-button="BUTTON_DOWN">▼</div>
+        <div class="touch-btn dpad-left" data-button="BUTTON_LEFT">◀</div>
+        <div class="touch-btn dpad-right" data-button="BUTTON_RIGHT">▶</div>
+      </div>
+
+      <div class="touch-center">
+        <div class="touch-btn btn-select" data-button="BUTTON_SELECT">SELECT</div>
+        <div class="touch-btn btn-start" data-button="BUTTON_START">START</div>
+      </div>
+
+      <div class="touch-buttons">
+        <div class="touch-btn btn-b" data-button="BUTTON_B">B</div>
+        <div class="touch-btn btn-a" data-button="BUTTON_A">A</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Control Bar -->
+  <footer class="bottom-bar">
+    <div class="players-indicator">
+      <div class="player-tag p1">
+        <span>P1 (Host):</span>
+        <span class="device" id="p1Device">WASD + J/K</span>
+      </div>
+      <div class="player-tag p2">
+        <span>P2:</span>
+        <span class="device" id="p2Device">Setas + Z/X</span>
+      </div>
+      <div class="player-tag" style="border-color: #475569;">
+        <span>ROM:</span>
+        <span class="device" id="currentRomLabel">Pong (2 Players)</span>
+      </div>
+    </div>
+
+    <div class="bottom-controls">
+      <button class="btn" id="btnSwapP1P2" title="Alternar se o seu controle comanda o Player 1 ou Player 2">
+        <span>⇄</span> Inverter (P1)
+      </button>
+      <button class="btn" id="btnPause" title="Pausar jogo">
+        <span>⏸️</span> Pausar
+      </button>
+      <button class="btn" id="btnReset" title="Reiniciar ROM atual">
+        <span>🔄</span> Reset
+      </button>
+      <button class="btn" id="btnSaveState" title="Salvar progresso na memória local">
+        <span>💾</span> Salvar
+      </button>
+      <button class="btn" id="btnLoadState" title="Carregar progresso salvo">
+        <span>📂</span> Carregar
+      </button>
+      <button class="btn" id="btnTouchToggle" title="Exibir botões na tela para celular/tablet">
+        <span>📱</span> Toque
+      </button>
+
+      <div class="volume-control">
+        <span>🔊</span>
+        <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.8">
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Multiplayer Online (P2P WebRTC) -->
+  <div class="modal-backdrop" id="multiplayerModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">🔗 JOGAR ONLINE DE 2 JOGADORES (P2P)</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted);">
+          Conecte-se diretamente com sua amiga ponto a ponto (sem passar por nenhum servidor central). O Player 1 transmite a tela e o Player 2 joga em tempo real!
+        </p>
+
+        <!-- Host section -->
+        <div class="input-group" style="background: #111627; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <label style="color: var(--neon-cyan); font-weight: bold;">OPÇÃO 1: CRIAR SALA (Você é o Host - Player 1)</label>
+          <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
+            ⚡ GERAR LINK DA SALA
+          </button>
+
+          <div class="share-link-box" id="shareLinkBox" style="display: none; margin-top: 8px;">
+            <label>Envie este link para ela:</label>
+            <div class="share-link-text" id="shareLinkText"></div>
+            <button class="btn btn-primary" id="btnCopyLink" style="align-self: flex-end;">
+              📋 Copiar Link
+            </button>
+          </div>
+        </div>
+
+        <!-- Client section -->
+        <div class="input-group" style="background: #111627; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <label style="color: var(--neon-yellow); font-weight: bold;">OPÇÃO 2: ENTRAR EM SALA (Ela criou a sala - Player 2)</label>
+          <div class="input-row">
+            <input type="text" class="input-text" id="joinRoomInput" placeholder="Cole o Link ou ID da sala aqui...">
+            <button class="btn btn-primary" id="btnJoinRoom">Entrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Controles e Teclas -->
+  <div class="modal-backdrop" id="controlsModal">
+    <div class="modal-card" style="width: 620px;">
+      <div class="modal-header">
+        <h2 class="modal-title">⚙️ MAPEAMENTO DE CONTROLES</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 12px;">
+          Suporte automático para <strong>Teclado</strong> e <strong>Gamepads USB / Bluetooth</strong> (Xbox, PS4/PS5, 8BitDo, SNES USB).
+        </p>
+
+        <table class="controls-table">
+          <thead>
+            <tr>
+              <th>BOTÃO NES</th>
+              <th>PLAYER 1 (HOST / LOCAL)</th>
+              <th>PLAYER 2 (CLIENT / LOCAL)</th>
+              <th>GAMEPAD</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>D-PAD (Direcionais)</strong></td>
+              <td><span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span></td>
+              <td><span class="kbd-key">↑</span> <span class="kbd-key">←</span> <span class="kbd-key">↓</span> <span class="kbd-key">→</span></td>
+              <td>D-Pad / Analógico Esquerdo</td>
+            </tr>
+            <tr>
+              <td><strong>BOTÃO B</strong></td>
+              <td><span class="kbd-key">J</span></td>
+              <td><span class="kbd-key">Z</span> ou <span class="kbd-key">Num 1</span></td>
+              <td>Botão X / Quadrado</td>
+            </tr>
+            <tr>
+              <td><strong>BOTÃO A</strong></td>
+              <td><span class="kbd-key">K</span></td>
+              <td><span class="kbd-key">X</span> ou <span class="kbd-key">Num 2</span></td>
+              <td>Botão A / Cruz</td>
+            </tr>
+            <tr>
+              <td><strong>TURBO B / TURBO A</strong></td>
+              <td><span class="kbd-key">U</span> / <span class="kbd-key">I</span></td>
+              <td><span class="kbd-key">Num 4</span> / <span class="kbd-key">Num 5</span></td>
+              <td>Gatilhos L1 / R1</td>
+            </tr>
+            <tr>
+              <td><strong>SELECT</strong></td>
+              <td><span class="kbd-key">Shift</span> ou <span class="kbd-key">Tab</span></td>
+              <td><span class="kbd-key">Num 0</span> ou <span class="kbd-key">[</span></td>
+              <td>Botão Select / Share</td>
+            </tr>
+            <tr>
+              <td><strong>START</strong></td>
+              <td><span class="kbd-key">Enter</span> ou <span class="kbd-key">Espaço</span></td>
+              <td><span class="kbd-key">Num Enter</span> ou <span class="kbd-key">]</span></td>
+              <td>Botão Start / Options</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="background: rgba(0, 229, 255, 0.1); border: 1px dashed var(--neon-cyan); padding: 10px; border-radius: 6px; font-size: 11px; color: var(--neon-cyan);">
+          💡 <strong>Dica:</strong> Se ambos estiverem no mesmo computador, vocês podem jogar juntos usando os dois lados do teclado ou dois controles plugados!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="peerjs.min.js"></script>
+  <script src="jsnes.min.js"></script>
+  <script src="js/emulator.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
