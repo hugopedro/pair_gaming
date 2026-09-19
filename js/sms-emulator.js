@@ -74,6 +74,13 @@ class SmsEmulator {
     this.turboA = { 1: false, 2: false };
     this.turboB = { 1: false, 2: false };
 
+    // Rewind Ring Buffer (snapshots every 30 frames = 0.5s for up to 15s)
+    this.rewindBuffer = [];
+    this.maxRewindStates = 30; // 30 states * 0.5s = 15 seconds
+    this.rewindIntervalFrames = 30;
+    this.totalFrames = 0;
+    this.isRewinding = false;
+
     // Callbacks
     this.onStatusChange = null;
     this.onFPSUpdate = null;
@@ -279,6 +286,8 @@ class SmsEmulator {
 
       this.currentRomData = binaryString;
       this.currentRomName = romName;
+      this.rewindBuffer = [];
+      this.totalFrames = 0;
 
       this.sms.reset();
       this.sms.loadRom(romName, binaryString);
@@ -296,6 +305,8 @@ class SmsEmulator {
 
   reloadROM() {
     if (this.currentRomData) {
+      this.rewindBuffer = [];
+      this.totalFrames = 0;
       this.loadROM(this.currentRomData, this.currentRomName);
     }
   }
@@ -326,6 +337,50 @@ class SmsEmulator {
       this._loop();
     }
     return this.isPaused;
+  }
+
+  _captureRewindState() {
+    if (!this.sms || !this.isRunning || this.isPaused || this.isRewinding) return;
+    try {
+      const state = this.sms.saveState();
+      if (state) {
+        this.rewindBuffer.push(state);
+        if (this.rewindBuffer.length > this.maxRewindStates) {
+          this.rewindBuffer.shift();
+        }
+      }
+    } catch (err) {
+      // Ignore capture failures
+    }
+  }
+
+  rewind(seconds = 3) {
+    if (!this.sms || this.rewindBuffer.length === 0) return false;
+    const stepsToPop = Math.max(1, Math.round(seconds * 2));
+    for (let i = 0; i < stepsToPop; i++) {
+      if (this.rewindBuffer.length > 1) {
+        this.rewindBuffer.pop();
+      }
+    }
+    const targetState = this.rewindBuffer[this.rewindBuffer.length - 1];
+    if (targetState) {
+      this.isRewinding = true;
+      try {
+        this.sms.loadState(targetState);
+        // Run 1 frame to refresh screen immediately
+        const sc = this.soundChip;
+        for (let l = 0; l < 313; l++) {
+          this.sms.runLine(tstates => sc.polltime(tstates));
+        }
+        this.isRewinding = false;
+        return true;
+      } catch (err) {
+        console.error('Erro no rewind SMS:', err);
+        this.isRewinding = false;
+        return false;
+      }
+    }
+    return false;
   }
 
   _loop() {
@@ -361,6 +416,12 @@ class SmsEmulator {
           this.sms.runLine(tstates => sc.polltime(tstates));
         }
         this.frameCount++;
+        this.totalFrames++;
+
+        // Capture rewind snapshot every 30 frames (0.5s) using monotonic totalFrames
+        if (this.totalFrames % this.rewindIntervalFrames === 0) {
+          this._captureRewindState();
+        }
       } catch (err) {
         console.error('Erro na execução do frame SMS:', err);
       }

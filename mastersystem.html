@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/sms-style.css?v=3">
+  <link rel="stylesheet" href="css/sms-style.css?v=9">
 </head>
 <body>
 
@@ -49,6 +49,12 @@
       <button class="btn btn-sega-primary" id="btnMultiplayer" title="Convidar amiga via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
+      <button class="btn btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
+        <span>⏪</span> <span class="rewind-label">Rebobinar (3s)</span>
+      </button>
+      <button class="btn btn-copilot" id="btnCopilotTop" title="Assumir o controle do boneco dela temporariamente para passar fase (Atalho: C / R3 no Controle)">
+        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
+      </button>
       <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
         <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
@@ -72,6 +78,16 @@
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline style="display: none;"></video>
+
+      <!-- Co-Pilot Active Banners -->
+      <div class="copilot-banner host" id="copilotHostBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>MODO CO-PILOT ATIVO:</strong> Você está no controle do boneco dela! [Pressione C ou clique para devolver]</span>
+      </div>
+      <div class="copilot-banner client" id="copilotClientBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>SEU AMIGO ASSUMIU O CONTROLE!</strong> Aguarde ele passar o obstáculo...</span>
+      </div>
 
       <!-- Drag and Drop Overlay -->
       <div class="drop-zone" id="dropZone">
@@ -118,6 +134,12 @@
     </div>
 
     <div class="bottom-controls">
+      <button class="btn btn-rewind" id="btnRewindBottom" title="Rebobinar jogo 3 segundos (Backspace ou R / L3 no Controle)">
+        <span>⏪</span> Rebobinar (3s)
+      </button>
+      <button class="btn btn-copilot" id="btnCopilotBottom" title="Passar o controle / Co-Pilot (C / R3 no Controle)">
+        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
+      </button>
       <button class="btn btn-swap-p1p2" id="btnSwapP1P2" title="Alternar quem comanda o Player 1 (Você ou Ela)">
         <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
@@ -188,7 +210,7 @@
   <div class="modal-backdrop" id="controlsModal">
     <div class="modal-card" style="width: 640px;">
       <div class="modal-header">
-        <h2 class="modal-title">🎮 CONTROLE XBOX 360 (SEGA MASTER SYSTEM)</h2>
+        <h2 class="modal-title">🎮 CONTROLE XBOX 360 & TECLADO (MASTER SYSTEM)</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
@@ -199,51 +221,56 @@
         <table class="controls-table">
           <thead>
             <tr>
-              <th>BOTÃO MASTER SYSTEM</th>
-              <th>CONTROLE XBOX 360</th>
-              <th>AÇÃO NO JOGO (ALEX KIDD / SONIC)</th>
+              <th>FUNÇÃO</th>
+              <th>XBOX 360</th>
+              <th>TECLADO</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>BOTÃO 1 (Gatilho)</strong></td>
-              <td><span class="xbox-btn xbox-a">A</span> (Verde) ou <span class="xbox-btn xbox-x">X</span> (Azul)</td>
-              <td>Pular / Ação Primária</td>
+              <td><strong>BOTÃO 1 (PULAR)</strong></td>
+              <td><span class="xbox-btn xbox-a">A</span> ou <span class="xbox-btn xbox-x">X</span></td>
+              <td><kbd>K</kbd> (P1) / <kbd>X</kbd> (P2)</td>
             </tr>
             <tr>
-              <td><strong>BOTÃO 2</strong></td>
-              <td><span class="xbox-btn xbox-b">B</span> (Vermelho) ou <span class="xbox-btn xbox-y">Y</span> (Amarelo)</td>
-              <td>Soco / Atacar / Ação Secundária</td>
+              <td><strong>BOTÃO 2 (ATACAR)</strong></td>
+              <td><span class="xbox-btn xbox-b">B</span> ou <span class="xbox-btn xbox-y">Y</span></td>
+              <td><kbd>J</kbd> (P1) / <kbd>Z</kbd> (P2)</td>
+            </tr>
+            <tr>
+              <td><strong>REBOBINAR (3s) ⏪</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">L3</span> (Clicar Analógico Esq.)</td>
+              <td><kbd>Backspace</kbd> ou <kbd>R</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>PASSA O CONTROLE 🤝</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">R3</span> (Clicar Analógico Dir.)</td>
+              <td><kbd>C</kbd></td>
             </tr>
             <tr>
               <td><strong>SAVE STATE (P1)</strong></td>
               <td><span class="xbox-btn xbox-shoulder">LB</span> (Ombro Esquerdo)</td>
-              <td>Salvar Estado / Progresso Instantâneo</td>
+              <td>Botão na tela</td>
             </tr>
             <tr>
               <td><strong>LOAD STATE (P1)</strong></td>
               <td><span class="xbox-btn xbox-shoulder">RB</span> (Ombro Direito)</td>
-              <td>Carregar Estado / Progresso Instantâneo</td>
+              <td>Botão na tela</td>
             </tr>
             <tr>
-              <td><strong>TURBO 1</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">RT</span> (Gatilho Direito) [P2: RB ou RT]</td>
-              <td>Pulo Rápido / Ação Turbo 1</td>
+              <td><strong>TURBO 1 / TURBO 2</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">RT</span> / <span class="xbox-btn xbox-shoulder">LT</span></td>
+              <td><kbd>I</kbd> / <kbd>U</kbd></td>
             </tr>
             <tr>
-              <td><strong>TURBO 2</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">LT</span> (Gatilho Esquerdo) [P2: LB ou LT]</td>
-              <td>Ataque Turbo Contínuo</td>
-            </tr>
-            <tr>
-              <td><strong>D-PAD (Direções)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esquerdo</strong></td>
-              <td>Mover / Agachar / Nadar</td>
+              <td><strong>DIRECIONAIS</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esq.</strong></td>
+              <td><kbd>W,A,S,D</kbd> / Setas</td>
             </tr>
             <tr>
               <td><strong>PAUSE (Console)</strong></td>
               <td><span class="xbox-btn xbox-shoulder">START</span> ou <span class="xbox-btn xbox-shoulder">BACK</span></td>
-              <td>Pausar Jogo / Abrir Menu do Jogo</td>
+              <td><kbd>Enter</kbd> / <kbd>Space</kbd></td>
             </tr>
           </tbody>
         </table>
@@ -260,11 +287,11 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="js/sms.min.js?v=7"></script>
-  <script src="js/xbrz.js?v=7"></script>
-  <script src="js/sms-emulator.js?v=7"></script>
-  <script src="js/input.js?v=7"></script>
-  <script src="js/multiplayer.js?v=7"></script>
-  <script src="js/sms-app.js?v=7"></script>
+  <script src="js/sms.min.js?v=9"></script>
+  <script src="js/xbrz.js?v=9"></script>
+  <script src="js/sms-emulator.js?v=9"></script>
+  <script src="js/input.js?v=9"></script>
+  <script src="js/multiplayer.js?v=9"></script>
+  <script src="js/sms-app.js?v=9"></script>
 </body>
 </html>

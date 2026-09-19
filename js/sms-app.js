@@ -126,10 +126,54 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let remoteControlsP1 = false;
+  let coPilotActive = false;
+
+  function triggerRewind(seconds = 3) {
+    const success = emulator.rewind(seconds);
+    if (success) {
+      showToast(`⏪ Rebobinado ${seconds}s no tempo!`);
+    } else {
+      showToast('⚠️ Sem histórico suficiente para rebobinar ainda.');
+    }
+  }
+
+  function updateCoPilotUI() {
+    const copilotBtns = document.querySelectorAll('.btn-copilot');
+    const hostBanner = document.getElementById('copilotHostBanner');
+    copilotBtns.forEach(btn => {
+      if (coPilotActive) {
+        btn.classList.add('active');
+        const lbl = btn.querySelector('.copilot-label');
+        if (lbl) lbl.textContent = 'Co-Pilot: ATIVO 🤝';
+      } else {
+        btn.classList.remove('active');
+        const lbl = btn.querySelector('.copilot-label');
+        if (lbl) lbl.textContent = 'Passa o Controle';
+      }
+    });
+    if (hostBanner) {
+      hostBanner.style.display = coPilotActive ? 'flex' : 'none';
+    }
+  }
+
+  function toggleCoPilot() {
+    coPilotActive = !coPilotActive;
+    updateCoPilotUI();
+    if (multiplayer && multiplayer.mode === 'HOST') {
+      multiplayer.sendCopilotStatus(coPilotActive);
+    }
+    if (coPilotActive) {
+      showToast('🤝 Modo Co-Pilot Ativo: Você assumiu o controle do boneco dela!');
+    } else {
+      showToast('🎮 Modo Co-Pilot Desativado: Controle devolvido para ela.');
+    }
+  }
 
   const multiplayer = new MultiplayerManager({
     onRemoteInput: (btn, isDown) => {
-      // Host receives Client input -> inject into Controller 1 if remoteControlsP1, otherwise Controller 2
+      // Host receives Client input -> If Co-Pilot is active, ignore remote inputs so girlfriend does not fight movements
+      if (coPilotActive) return;
+
       const targetPlayer = remoteControlsP1 ? 1 : 2;
       if (isDown) emulator.buttonDown(targetPlayer, btn);
       else emulator.buttonUp(targetPlayer, btn);
@@ -157,13 +201,24 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   multiplayer.onAspectRatioChange = (ratio) => updateAspectRatioUI(ratio, false);
+  multiplayer.onCopilotChange = (active) => {
+    const clientBanner = document.getElementById('copilotClientBanner');
+    if (clientBanner) {
+      clientBanner.style.display = active ? 'flex' : 'none';
+    }
+    if (active) {
+      showToast('🤝 Seu amigo assumiu o controle para te ajudar! Aguarde um instante...', 4000);
+    } else {
+      showToast('🎮 O controle voltou para você! Boa sorte!', 3000);
+    }
+  };
 
   // 3. Initialize Input System
   const input = new InputManager(
     (playerNum, buttonName, isDown) => {
       ensureAudio();
 
-      // Quick Save State (LB) and Quick Load State (RB) for Player 1
+      // Quick Save State (LB), Quick Load State (RB), REWIND (L3 / Backspace), COPILOT (R3 / C) for Player 1
       if (playerNum === 1) {
         if (buttonName === 'SAVE_STATE') {
           if (isDown) {
@@ -181,6 +236,18 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return;
         }
+        if (buttonName === 'REWIND') {
+          if (isDown) {
+            triggerRewind(3);
+          }
+          return;
+        }
+        if (buttonName === 'COPILOT') {
+          if (isDown) {
+            toggleCoPilot();
+          }
+          return;
+        }
       }
 
       if (multiplayer.mode === 'CLIENT' || isPlayer2Mode) {
@@ -194,7 +261,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         multiplayer.sendInput(buttonName, isDown);
       } else {
-        const localTarget = remoteControlsP1 ? (playerNum === 1 ? 2 : 1) : playerNum;
+        // Local or Host:
+        let localTarget = remoteControlsP1 ? (playerNum === 1 ? 2 : 1) : playerNum;
+        if (coPilotActive && playerNum === 1) {
+          localTarget = remoteControlsP1 ? 1 : 2;
+        }
         if (isDown) emulator.buttonDown(localTarget, buttonName);
         else emulator.buttonUp(localTarget, buttonName);
       }
@@ -326,6 +397,15 @@ document.addEventListener('DOMContentLoaded', () => {
     emulator.loadState().then(loaded => {
       showToast(loaded ? '📂 Estado Carregado! (RB)' : 'Nenhum estado salvo encontrado.');
     });
+  });
+
+  // Rewind & Co-Pilot Click Listeners (Top and Bottom bars)
+  document.querySelectorAll('.btn-rewind').forEach(btn => {
+    btn.addEventListener('click', () => triggerRewind(3));
+  });
+
+  document.querySelectorAll('.btn-copilot').forEach(btn => {
+    btn.addEventListener('click', () => toggleCoPilot());
   });
 
   function updatePlayerRolesUI() {
