@@ -22,6 +22,7 @@ class MultiplayerManager {
     this.onPingUpdate = onPingUpdate;       // (pingMs) => {}
     this.onAspectRatioChange = null;        // (ratio) => {}
     this.onCopilotChange = null;            // (active) => {}
+    this.onChatMessage = null;              // (sender, text) => {}
     this.currentRatio = '4-3';
   }
 
@@ -94,6 +95,10 @@ class MultiplayerManager {
         // Inject remote Player 2 button input into emulator Controller 2
         if (this.onRemoteInput) {
           this.onRemoteInput(data.button, data.isDown);
+        }
+      } else if (data.type === 'CHAT') {
+        if (this.onChatMessage) {
+          this.onChatMessage(data.sender, data.text);
         }
       } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
@@ -177,6 +182,8 @@ class MultiplayerManager {
         if (this.onAspectRatioChange) this.onAspectRatioChange(data.ratio);
       } else if (data.type === 'COPILOT_STATUS') {
         if (this.onCopilotChange) this.onCopilotChange(data.active);
+      } else if (data.type === 'CHAT') {
+        if (this.onChatMessage) this.onChatMessage(data.sender, data.text);
       } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
       } else if (data.type === 'PONG') {
@@ -193,6 +200,18 @@ class MultiplayerManager {
       }
       this._stopPingMonitor();
     });
+  }
+
+  sendChatMessage(text, sender = '') {
+    if (this.isConnected && this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'CHAT',
+        text: text,
+        sender: sender
+      });
+      return true;
+    }
+    return false;
   }
 
   sendAspectRatio(ratio) {

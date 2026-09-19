@@ -894,3 +894,237 @@ body.player2-mode .toast-container {
   box-shadow: 0 0 14px rgba(0, 102, 204, 0.7);
 }
 
+/* ==========================================================================
+   In-Game Translucent Overlay Chat (HUD / LoL / MMO Style with Auto-Fade)
+   Works in normal mode and fullscreen, zero pixel disruption.
+   ========================================================================== */
+.ingame-chat {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 420px;
+  width: calc(100% - 28px);
+  pointer-events: none;
+  user-select: text;
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-height: 190px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  pointer-events: none;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.ingame-chat:hover,
+.ingame-chat.active {
+  pointer-events: auto;
+}
+
+.ingame-chat:hover .chat-messages,
+.ingame-chat.active .chat-messages {
+  pointer-events: auto;
+}
+
+.ingame-chat:hover .chat-msg.faded,
+.ingame-chat.active .chat-msg.faded {
+  opacity: 0.88 !important;
+  pointer-events: auto;
+}
+
+.chat-msg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  background: rgba(10, 14, 26, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #f1f5f9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  max-width: 92%;
+  word-break: break-word;
+  transition: opacity 0.8s ease, transform 0.2s ease;
+  animation: chatMsgIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+@keyframes chatMsgIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-msg.faded {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-msg .chat-sender {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.chat-msg.host .chat-sender {
+  color: #00e5ff; /* Cyan neon for Hugo / Host */
+}
+
+.chat-msg.client .chat-sender {
+  color: #ff4081; /* Pink neon for Namorada / Guest */
+}
+
+.chat-msg.system {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(56, 189, 248, 0.35);
+  font-style: italic;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.chat-msg .chat-text {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.chat-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 360px;
+  background: rgba(11, 14, 26, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 20px;
+  padding: 4px 6px 4px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 229, 255, 0.25);
+  pointer-events: auto;
+  animation: chatInputIn 0.18s ease-out;
+}
+
+@keyframes chatInputIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chat-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.chat-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+}
+
+.chat-send-btn {
+  background: linear-gradient(135deg, #00e5ff, #0091ea);
+  border: none;
+  color: #05070c;
+  font-weight: bold;
+  font-size: 13px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.chat-send-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+}
+
+.chat-toggle-btn {
+  pointer-events: auto;
+  background: rgba(15, 20, 35, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  transition: all 0.2s ease;
+  opacity: 0.55;
+  font-family: var(--font-retro);
+}
+
+.chat-toggle-btn:hover,
+.chat-toggle-btn.has-unread {
+  opacity: 1;
+  background: rgba(0, 229, 255, 0.2);
+  border-color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+
+.chat-toggle-label {
+  font-size: 9px;
+  letter-spacing: 0.5px;
+}
+
+.chat-unread-badge {
+  background: #ff007f;
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 5px;
+  border-radius: 10px;
+  box-shadow: 0 0 6px rgba(255, 0, 127, 0.8);
+}
+
+/* Fullscreen adjustments for In-Game Chat */
+.screen-cabinet:fullscreen .ingame-chat,
+.screen-cabinet:-webkit-full-screen .ingame-chat,
+:fullscreen .ingame-chat,
+:-webkit-full-screen .ingame-chat {
+  bottom: 24px;
+  left: 24px;
+  max-width: 460px;
+}
+
+

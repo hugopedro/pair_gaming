@@ -94,6 +94,20 @@
         <div class="drop-icon">🕹️</div>
         <div class="drop-text">SOLTE A ROM DO MASTER SYSTEM AQUI<br>(Arquivo .sms ou .bin)</div>
       </div>
+
+      <!-- In-Game Translucent Overlay Chat -->
+      <div class="ingame-chat" id="ingameChat">
+        <div class="chat-messages" id="chatMessages"></div>
+        <form class="chat-input-wrap" id="chatInputWrap" style="display: none;">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Conversar... (Enter envia, Esc fecha)" maxlength="120" autocomplete="off" />
+          <button type="submit" class="chat-send-btn" id="chatSendBtn" title="Enviar mensagem">➤</button>
+        </form>
+        <button type="button" class="chat-toggle-btn" id="chatToggleBtn" title="Abrir Chat (Atalho: Enter ou T)">
+          <span>💬</span>
+          <span class="chat-toggle-label">Chat</span>
+          <span class="chat-unread-badge" id="chatUnreadBadge" style="display: none;">0</span>
+        </button>
+      </div>
     </div>
 
     <!-- On-screen Virtual Touch Gamepad for Mobile/Tablets -->
@@ -270,7 +284,12 @@
             <tr>
               <td><strong>PAUSE (Console)</strong></td>
               <td><span class="xbox-btn xbox-shoulder">START</span> ou <span class="xbox-btn xbox-shoulder">BACK</span></td>
-              <td><kbd>Enter</kbd> / <kbd>Space</kbd></td>
+              <td><kbd>Space</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>CHAT NO JOGO 💬</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">💬</span> (Botão na tela)</td>
+              <td><kbd>Enter</kbd> ou <kbd>T</kbd></td>
             </tr>
           </tbody>
         </table>
@@ -287,11 +306,12 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="js/sms.min.js?v=9"></script>
-  <script src="js/xbrz.js?v=9"></script>
-  <script src="js/sms-emulator.js?v=9"></script>
-  <script src="js/input.js?v=9"></script>
-  <script src="js/multiplayer.js?v=9"></script>
-  <script src="js/sms-app.js?v=9"></script>
+  <script src="js/sms.min.js?v=10"></script>
+  <script src="js/xbrz.js?v=10"></script>
+  <script src="js/sms-emulator.js?v=10"></script>
+  <script src="js/input.js?v=10"></script>
+  <script src="js/multiplayer.js?v=10"></script>
+  <script src="js/chat.js?v=10"></script>
+  <script src="js/sms-app.js?v=10"></script>
 </body>
 </html>

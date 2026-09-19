@@ -57,6 +57,14 @@ class InputManager {
 
   _initKeyboard() {
     window.addEventListener('keydown', (e) => {
+      // If typing in any input/textarea, or if in-game chat is active, ignore emulator controls
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (window.inGameChat && window.inGameChat.isOpen) {
+        return;
+      }
+
       // Prevent browser default on navigation and shortcut keys during gameplay
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace'].includes(e.code)) {
         e.preventDefault();
@@ -98,6 +106,12 @@ class InputManager {
     });
 
     window.addEventListener('keyup', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (window.inGameChat && window.inGameChat.isOpen) {
+        return;
+      }
       if (this.keyMapP1[e.code]) {
         const btn = this.keyMapP1[e.code];
         if (this.pressedP1.has(btn)) {

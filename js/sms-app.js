@@ -213,6 +213,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Initialize In-Game Overlay Chat
+  const inGameChat = new InGameChat({
+    cabinet: document.querySelector('.screen-cabinet'),
+    multiplayer: multiplayer,
+    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Namorada' : 'Hugo'),
+    getRemoteDefaultName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada')
+  });
+  window.inGameChat = inGameChat;
+
+  multiplayer.onChatMessage = (sender, text) => {
+    inGameChat.addMessage({
+      sender: sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada'),
+      text: text,
+      isMine: false
+    });
+  };
+
   // 3. Initialize Input System
   const input = new InputManager(
     (playerNum, buttonName, isDown) => {
