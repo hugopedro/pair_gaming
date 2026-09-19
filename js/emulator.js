@@ -77,6 +77,7 @@ class NesEmulator {
     this.rewindBuffer = [];
     this.maxRewindStates = 30; // 30 states * 0.5s = 15 seconds
     this.rewindIntervalFrames = 30;
+    this.totalFrames = 0;
     this.isRewinding = false;
 
     // Callbacks
@@ -340,6 +341,8 @@ class NesEmulator {
       this.isRewinding = true;
       try {
         this.nes.fromJSON(targetState);
+        // Force 1 frame render immediately so the canvas updates right now
+        this.nes.frame();
         this.isRewinding = false;
         return true;
       } catch (err) {
@@ -363,9 +366,10 @@ class NesEmulator {
       try {
         this.nes.frame();
         this.frameCount++;
+        this.totalFrames++;
 
-        // Capture rewind snapshot every 30 frames (0.5s)
-        if (this.frameCount % this.rewindIntervalFrames === 0) {
+        // Capture rewind snapshot every 30 frames (0.5s) using monotonic totalFrames
+        if (this.totalFrames % this.rewindIntervalFrames === 0) {
           this._captureRewindState();
         }
       } catch (err) {
