@@ -20,6 +20,8 @@ class MultiplayerManager {
     this.onRemoteStream = onRemoteStream;   // (mediaStream) => {}
     this.onStatusChange = onStatusChange;   // (statusText, mode) => {}
     this.onPingUpdate = onPingUpdate;       // (pingMs) => {}
+    this.onAspectRatioChange = null;        // (ratio) => {}
+    this.currentRatio = '4-3';
   }
 
   createRoom(getLocalMediaStream) {
@@ -78,6 +80,7 @@ class MultiplayerManager {
       }
 
       this._startPingMonitor();
+      this.sendAspectRatio(this.currentRatio);
     });
 
     this.conn.on('data', (data) => {
@@ -164,7 +167,10 @@ class MultiplayerManager {
     this.conn.on('data', (data) => {
       if (!data) return;
 
-      if (data.type === 'PING') {
+      if (data.type === 'ASPECT_RATIO') {
+        this.currentRatio = data.ratio;
+        if (this.onAspectRatioChange) this.onAspectRatioChange(data.ratio);
+      } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
       } else if (data.type === 'PONG') {
         this.ping = Math.round(performance.now() - data.time);
@@ -180,6 +186,16 @@ class MultiplayerManager {
       }
       this._stopPingMonitor();
     });
+  }
+
+  sendAspectRatio(ratio) {
+    this.currentRatio = ratio;
+    if (this.isConnected && this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'ASPECT_RATIO',
+        ratio: ratio
+      });
+    }
   }
 
   sendInput(buttonName, isDown) {

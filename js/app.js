@@ -30,8 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', ensureAudio, { once: true });
   window.addEventListener('keydown', ensureAudio, { once: true });
 
+  // Aspect Ratio System (4:3 CRT TV, 16:10 Wide Suave, 16:9 Total, 8:7 Original)
+  const aspectRatios = {
+    '4-3': '4:3 (TV CRT)',
+    '16-10': '16:10 (Wide Suave)',
+    '16-9': '16:9 (Total)',
+    'original': '8:7 (Original)'
+  };
+  let currentRatio = localStorage.getItem('duplinha_ratio') || '4-3';
+
+  function updateAspectRatioUI(ratio, shouldBroadcast = true) {
+    currentRatio = ratio;
+    localStorage.setItem('duplinha_ratio', ratio);
+    const label = document.getElementById('aspectRatioLabel');
+    if (label) label.textContent = aspectRatios[ratio] || '4:3 (TV CRT)';
+    document.body.classList.remove('ratio-4-3', 'ratio-16-10', 'ratio-16-9', 'ratio-original');
+    document.body.classList.add(`ratio-${ratio}`);
+    if (shouldBroadcast && typeof multiplayer !== 'undefined' && multiplayer && multiplayer.mode === 'HOST') {
+      multiplayer.sendAspectRatio(ratio);
+    }
+  }
+
   // 1. Initialize Emulator
   const emulator = new NesEmulator(canvas);
+  updateAspectRatioUI(currentRatio, false);
   emulator.onStatusChange = (msg) => showToast(msg);
   emulator.onFPSUpdate = (fps) => {
     const fpsElem = document.getElementById('fpsBadge');
@@ -122,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
       else pingText.style.color = 'var(--neon-pink)';
     }
   });
+  multiplayer.onAspectRatioChange = (ratio) => updateAspectRatioUI(ratio, false);
 
   // 3. Initialize Input System
   const input = new InputManager(
@@ -260,6 +283,18 @@ document.addEventListener('DOMContentLoaded', () => {
       emulator.setFilter(nextMode);
       updateFilterUI(nextMode);
       showToast(`Filtro Visual: ${filterNames[nextMode]}`);
+    });
+  }
+
+  // Aspect Ratio Button Listener
+  const btnAspectRatio = document.getElementById('btnAspectRatio');
+  if (btnAspectRatio) {
+    btnAspectRatio.addEventListener('click', () => {
+      const order = ['4-3', '16-10', '16-9', 'original'];
+      const nextIdx = (order.indexOf(currentRatio) + 1) % order.length;
+      const nextRatio = order[nextIdx];
+      updateAspectRatioUI(nextRatio, true);
+      showToast(`Proporção de Tela: ${aspectRatios[nextRatio]}`);
     });
   }
 
