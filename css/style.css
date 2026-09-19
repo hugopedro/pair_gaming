@@ -900,15 +900,15 @@ body.player2-mode .toast-container {
    ========================================================================== */
 .ingame-chat {
   position: absolute;
-  bottom: 14px;
-  left: 14px;
+  bottom: 20px;
+  left: 20px;
   z-index: 55;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  max-width: 420px;
-  width: calc(100% - 28px);
+  gap: 10px;
+  max-width: 520px;
+  width: calc(100% - 40px);
   pointer-events: none;
   user-select: text;
 }
@@ -917,8 +917,8 @@ body.player2-mode .toast-container {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  max-height: 190px;
+  gap: 8px;
+  max-height: 280px;
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
@@ -940,26 +940,26 @@ body.player2-mode .toast-container {
 
 .ingame-chat:hover .chat-msg.faded,
 .ingame-chat.active .chat-msg.faded {
-  opacity: 0.88 !important;
+  opacity: 0.92 !important;
   pointer-events: auto;
 }
 
 .chat-msg {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  background: rgba(10, 14, 26, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 6px 12px;
+  gap: 8px;
+  background: rgba(10, 14, 26, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  padding: 10px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 13px;
-  line-height: 1.4;
-  color: #f1f5f9;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  max-width: 92%;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #f8fafc;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  max-width: 95%;
   word-break: break-word;
   transition: opacity 0.8s ease, transform 0.2s ease;
   animation: chatMsgIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -969,7 +969,7 @@ body.player2-mode .toast-container {
 @keyframes chatMsgIn {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.97);
+    transform: translateY(10px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -983,46 +983,49 @@ body.player2-mode .toast-container {
 }
 
 .chat-msg .chat-sender {
-  font-weight: 700;
-  font-size: 12px;
+  font-weight: 800;
+  font-size: 15px;
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
 .chat-msg.host .chat-sender {
   color: #00e5ff; /* Cyan neon for Hugo / Host */
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
 }
 
 .chat-msg.client .chat-sender {
   color: #ff4081; /* Pink neon for Namorada / Guest */
+  text-shadow: 0 0 8px rgba(255, 64, 129, 0.4);
 }
 
 .chat-msg.system {
-  background: rgba(30, 41, 59, 0.85);
-  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(30, 41, 59, 0.88);
+  border-color: rgba(56, 189, 248, 0.4);
   font-style: italic;
-  font-size: 11px;
-  color: #94a3b8;
+  font-size: 13px;
+  color: #cbd5e1;
 }
 
 .chat-msg .chat-text {
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  font-weight: 500;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .chat-input-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  max-width: 360px;
-  background: rgba(11, 14, 26, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 229, 255, 0.5);
-  border-radius: 20px;
-  padding: 4px 6px 4px 14px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 229, 255, 0.25);
+  max-width: 480px;
+  background: rgba(11, 14, 26, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 2px solid rgba(0, 229, 255, 0.6);
+  border-radius: 28px;
+  padding: 6px 8px 6px 18px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(0, 229, 255, 0.3);
   pointer-events: auto;
   animation: chatInputIn 0.18s ease-out;
 }
@@ -1044,13 +1047,14 @@ body.player2-mode .toast-container {
   border: none;
   outline: none;
   color: #fff;
-  font-size: 13px;
+  font-size: 16px;
   font-family: inherit;
+  font-weight: 500;
 }
 
 .chat-input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
-  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
 }
 
 .chat-send-btn {
@@ -1058,9 +1062,9 @@ body.player2-mode .toast-container {
   border: none;
   color: #05070c;
   font-weight: bold;
-  font-size: 13px;
-  width: 28px;
-  height: 28px;
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1071,60 +1075,133 @@ body.player2-mode .toast-container {
 
 .chat-send-btn:hover {
   transform: scale(1.08);
-  box-shadow: 0 0 10px rgba(0, 229, 255, 0.7);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.8);
 }
 
 .chat-toggle-btn {
   pointer-events: auto;
-  background: rgba(15, 20, 35, 0.75);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(15, 20, 35, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
-  font-size: 11px;
-  border-radius: 20px;
-  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: 22px;
+  padding: 6px 14px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
   transition: all 0.2s ease;
-  opacity: 0.55;
+  opacity: 0.65;
   font-family: var(--font-retro);
 }
 
 .chat-toggle-btn:hover,
 .chat-toggle-btn.has-unread {
   opacity: 1;
-  background: rgba(0, 229, 255, 0.2);
+  background: rgba(0, 229, 255, 0.25);
   border-color: #00e5ff;
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
 }
 
 .chat-toggle-label {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.5px;
 }
 
 .chat-unread-badge {
   background: #ff007f;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: bold;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 10px;
-  box-shadow: 0 0 6px rgba(255, 0, 127, 0.8);
+  box-shadow: 0 0 8px rgba(255, 0, 127, 0.8);
 }
 
-/* Fullscreen adjustments for In-Game Chat */
+/* Fullscreen adjustments for In-Game Chat (Noticeably bigger for TVs and large monitors) */
 .screen-cabinet:fullscreen .ingame-chat,
 .screen-cabinet:-webkit-full-screen .ingame-chat,
 :fullscreen .ingame-chat,
 :-webkit-full-screen .ingame-chat {
-  bottom: 24px;
-  left: 24px;
-  max-width: 460px;
+  bottom: 32px;
+  left: 32px;
+  max-width: 620px;
+  gap: 12px;
 }
+
+.screen-cabinet:fullscreen .chat-messages,
+.screen-cabinet:-webkit-full-screen .chat-messages,
+:fullscreen .chat-messages,
+:-webkit-full-screen .chat-messages {
+  max-height: 380px;
+  gap: 10px;
+}
+
+.screen-cabinet:fullscreen .chat-msg,
+.screen-cabinet:-webkit-full-screen .chat-msg,
+:fullscreen .chat-msg,
+:-webkit-full-screen .chat-msg {
+  font-size: 18px !important;
+  padding: 12px 20px !important;
+  border-radius: 12px !important;
+}
+
+.screen-cabinet:fullscreen .chat-msg .chat-sender,
+.screen-cabinet:-webkit-full-screen .chat-msg .chat-sender,
+:fullscreen .chat-msg .chat-sender,
+:-webkit-full-screen .chat-msg .chat-sender {
+  font-size: 17px !important;
+}
+
+.screen-cabinet:fullscreen .chat-input-wrap,
+.screen-cabinet:-webkit-full-screen .chat-input-wrap,
+:fullscreen .chat-input-wrap,
+:-webkit-full-screen .chat-input-wrap {
+  max-width: 560px !important;
+  padding: 10px 12px 10px 22px !important;
+  border-radius: 32px !important;
+}
+
+.screen-cabinet:fullscreen .chat-input,
+.screen-cabinet:-webkit-full-screen .chat-input,
+:fullscreen .chat-input,
+:-webkit-full-screen .chat-input {
+  font-size: 18px !important;
+}
+
+.screen-cabinet:fullscreen .chat-input::placeholder,
+.screen-cabinet:-webkit-full-screen .chat-input::placeholder,
+:fullscreen .chat-input::placeholder,
+:-webkit-full-screen .chat-input::placeholder {
+  font-size: 16px !important;
+}
+
+.screen-cabinet:fullscreen .chat-send-btn,
+.screen-cabinet:-webkit-full-screen .chat-send-btn,
+:fullscreen .chat-send-btn,
+:-webkit-full-screen .chat-send-btn {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 18px !important;
+}
+
+.screen-cabinet:fullscreen .chat-toggle-btn,
+.screen-cabinet:-webkit-full-screen .chat-toggle-btn,
+:fullscreen .chat-toggle-btn,
+:-webkit-full-screen .chat-toggle-btn {
+  font-size: 15px !important;
+  padding: 8px 18px !important;
+}
+
+.screen-cabinet:fullscreen .chat-toggle-label,
+.screen-cabinet:-webkit-full-screen .chat-toggle-label,
+:fullscreen .chat-toggle-label,
+:-webkit-full-screen .chat-toggle-label {
+  font-size: 12px !important;
+}
+
 
 
