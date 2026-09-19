@@ -76,6 +76,9 @@ class MultiplayerManager {
           console.log('Iniciando transmissão de vídeo/áudio P2P para o Player 2...');
           this.call = this.peer.call(this.conn.peer, stream);
           this.call.on('error', (e) => console.error('Erro na chamada P2P:', e));
+
+          // Optimize WebRTC stream parameters (bitrate cap + anti-blur)
+          this._optimizePeerConnection(this.call.peerConnection);
         }
       }
 
@@ -228,6 +231,63 @@ class MultiplayerManager {
     if (!this.roomId) return '';
     const base = window.location.origin + window.location.pathname;
     return `${base}#${this.roomId}`;
+  }
+
+  /**
+   * Optimizes the WebRTC video stream for maximum crispness (maintain-resolution)
+   * while capping bitrate to 3.0 Mbps to remain smooth and stable even on modest connections.
+   */
+  _optimizePeerConnection(pc) {
+    if (!pc) return;
+
+    const applyParameters = () => {
+      try {
+        const senders = pc.getSenders ? pc.getSenders() : [];
+        for (const sender of senders) {
+          if (sender.track && sender.track.kind === 'video') {
+            const params = sender.getParameters ? sender.getParameters() : null;
+            if (!params) continue;
+
+            if (!params.encodings || params.encodings.length === 0) {
+              params.encodings = [{}];
+            }
+
+            for (const encoding of params.encodings) {
+              // 3.0 Mbps cap: pristine 60 FPS xBRZ quality without overloading modest internet connections
+              encoding.maxBitrate = 3000000;
+              encoding.networkPriority = 'high';
+              encoding.maxFramerate = 60;
+            }
+
+            // Strictly maintain resolution so HUD and pixel-art contours never get blurry
+            if ('degradationPreference' in params) {
+              params.degradationPreference = 'maintain-resolution';
+            }
+
+            sender.setParameters(params).then(() => {
+              console.log('⚡ WebRTC otimizado: 3.0 Mbps max, 60 FPS, maintain-resolution');
+            }).catch(() => {
+              // Can fail silently during active renegotiation
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Configuração WebRTC:', err);
+      }
+    };
+
+    // Apply immediately and retry after ICE connection stabilizes
+    applyParameters();
+    setTimeout(applyParameters, 800);
+    setTimeout(applyParameters, 2500);
+
+    if (pc.addEventListener) {
+      pc.addEventListener('connectionstatechange', () => {
+        if (pc.connectionState === 'connected') {
+          applyParameters();
+        }
+      });
+    }
   }
 
   _cleanup() {
