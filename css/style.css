@@ -628,3 +628,74 @@ html, body {
   .btn span { display: none; }
   .btn { padding: 7px 9px; }
 }
+
+/* Player 2 / Client Clean Fullscreen View */
+body.player2-mode {
+  background: #000;
+}
+
+body.player2-mode .top-nav,
+body.player2-mode .bottom-bar,
+body.player2-mode .touch-controls {
+  display: none !important;
+}
+
+body.player2-mode .main-viewport {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #000 !important;
+}
+
+body.player2-mode .screen-cabinet {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+body.player2-mode #remoteVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* Toast container adjustment in Player 2 mode */
+body.player2-mode .toast-container {
+  top: 20px;
+  right: 20px;
+}
+
+/* Fullscreen hint overlay for Player 2 */
+.p2-hint-overlay {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 12, 20, 0.88);
+  border: 1px solid var(--neon-yellow);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 24px;
+  font-family: var(--font-retro);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  box-shadow: 0 0 20px rgba(255, 235, 59, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.p2-hint-overlay.fade-out {
+  opacity: 0;
+  transform: translateX(-50%) translateY(15px);
+}

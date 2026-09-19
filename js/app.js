@@ -39,6 +39,62 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // 2. Initialize Multiplayer
+  let isPlayer2Mode = false;
+  function setupPlayer2Mode() {
+    if (isPlayer2Mode) return;
+    isPlayer2Mode = true;
+
+    document.body.classList.add('player2-mode');
+    canvas.style.display = 'none';
+    remoteVideo.style.display = 'block';
+
+    // Close any open modals
+    if (multiplayerModal) closeModal(multiplayerModal);
+    if (controlsModal) closeModal(controlsModal);
+
+    // Fullscreen trigger helper
+    const triggerFullscreen = () => {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      dismissHint();
+    };
+
+    // Create subtle hint overlay for Player 2
+    let hint = document.querySelector('.p2-hint-overlay');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.className = 'p2-hint-overlay';
+      hint.innerHTML = '<span>🎮</span> <span>Player 2 Conectada • Clique ou aperte qualquer botão para Tela Cheia</span>';
+      document.body.appendChild(hint);
+    }
+
+    const dismissHint = () => {
+      if (hint) {
+        hint.classList.add('fade-out');
+        setTimeout(() => {
+          if (hint && hint.parentNode) hint.remove();
+        }, 800);
+      }
+    };
+
+    setTimeout(dismissHint, 6000);
+
+    // Enter fullscreen on first user interaction (browser gesture requirement)
+    window.addEventListener('click', triggerFullscreen, { once: true });
+    window.addEventListener('keydown', triggerFullscreen, { once: true });
+    window.addEventListener('pointerdown', triggerFullscreen, { once: true });
+
+    // Double click to toggle fullscreen anytime
+    window.addEventListener('dblclick', () => {
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+  }
+
   const multiplayer = new MultiplayerManager({
     onRemoteInput: (btn, isDown) => {
       // Host receives Client input -> inject into Controller 2
@@ -46,9 +102,8 @@ document.addEventListener('DOMContentLoaded', () => {
       else emulator.buttonUp(2, btn);
     },
     onRemoteStream: (stream) => {
-      // Client receives Host's AV stream -> display on remoteVideo
-      canvas.style.display = 'none';
-      remoteVideo.style.display = 'block';
+      // Client receives Host's AV stream -> display on remoteVideo in fullscreen
+      setupPlayer2Mode();
       remoteVideo.srcObject = stream;
       remoteVideo.play().catch(e => console.warn('Autoplay video bloqueado:', e));
       showToast('Transmissão ao vivo recebida!');
@@ -72,7 +127,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const input = new InputManager(
     (playerNum, buttonName, isDown) => {
       ensureAudio();
-      if (multiplayer.mode === 'CLIENT') {
+      if (multiplayer.mode === 'CLIENT' || isPlayer2Mode) {
+        // Attempt fullscreen on gamepad/controller button press
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          const hint = document.querySelector('.p2-hint-overlay');
+          if (hint) {
+            hint.classList.add('fade-out');
+            setTimeout(() => { if (hint && hint.parentNode) hint.remove(); }, 800);
+          }
+        }
         multiplayer.sendInput(buttonName, isDown);
       } else {
         if (isDown) emulator.buttonDown(playerNum, buttonName);
@@ -246,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const targetId = inputVal.includes('#') ? inputVal.split('#')[1] : inputVal;
+    setupPlayer2Mode();
     multiplayer.joinRoom(targetId);
     closeModal(multiplayerModal);
   });
@@ -283,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.location.hash && window.location.hash.length > 1) {
     const roomIdFromHash = window.location.hash.substring(1);
     console.log('Link com sala detectado:', roomIdFromHash);
+    setupPlayer2Mode();
     showToast(`Conectando à sala: ${roomIdFromHash}...`);
     multiplayer.joinRoom(roomIdFromHash);
   } else {
