@@ -8,16 +8,35 @@ class NesEmulator {
   constructor(canvasElement) {
     this.canvas = canvasElement;
     this.ctx = this.canvas.getContext('2d', { alpha: false });
-    this.canvas.width = 256;
-    this.canvas.height = 240;
 
-    // Fast 32-bit pixel buffer for 256x240 frame
-    this.imageData = this.ctx.createImageData(256, 240);
-    this.buf = new ArrayBuffer(this.imageData.data.length);
+    // Active graphic filter mode: 'smooth' | 'scale2x' | 'pixelated'
+    this.filterMode = localStorage.getItem('duplinha_filter') || 'smooth';
+
+    // Canvas native resolution set to 512x480 (Double resolution for HD anti-aliasing)
+    this.canvas.width = 512;
+    this.canvas.height = 480;
+
+    // Internal 256x240 buffer for JSNES
+    this.offscreenCanvas = document.createElement('canvas');
+    this.offscreenCanvas.width = 256;
+    this.offscreenCanvas.height = 240;
+    this.offscreenCtx = this.offscreenCanvas.getContext('2d', { alpha: false });
+    this.offscreenImageData = this.offscreenCtx.createImageData(256, 240);
+
+    this.buf = new ArrayBuffer(this.offscreenImageData.data.length);
     this.buf8 = new Uint8ClampedArray(this.buf);
     this.buf32 = new Uint32Array(this.buf);
     for (let i = 0; i < this.buf32.length; i++) {
       this.buf32[i] = 0xFF000000; // Black opaque
+    }
+
+    // 512x480 Buffer for Scale2x filter
+    this.scaleImageData = this.ctx.createImageData(512, 480);
+    this.scaleBuf = new ArrayBuffer(this.scaleImageData.data.length);
+    this.scaleBuf8 = new Uint8ClampedArray(this.scaleBuf);
+    this.scaleBuf32 = new Uint32Array(this.scaleBuf);
+    for (let i = 0; i < this.scaleBuf32.length; i++) {
+      this.scaleBuf32[i] = 0xFF000000;
     }
 
     // Audio Pipeline
@@ -56,12 +75,25 @@ class NesEmulator {
   _initNES() {
     this.nes = new jsnes.NES({
       onFrame: (frameBuffer) => {
-        // Blit 256x240 32-bit pixel array directly to canvas
+        // Copy 256x240 frame from JSNES
         for (let i = 0; i < 61440; i++) {
           this.buf32[i] = 0xFF000000 | frameBuffer[i];
         }
-        this.imageData.data.set(this.buf8);
-        this.ctx.putImageData(this.imageData, 0, 0);
+
+        if (this.filterMode === 'scale2x') {
+          // Scale2x: Intelligent pixel-art edge rounding
+          this._applyScale2x(this.buf32, this.scaleBuf32, 256, 240);
+          this.scaleImageData.data.set(this.scaleBuf8);
+          this.ctx.putImageData(this.scaleImageData, 0, 0);
+        } else {
+          // Bilinear HD Smooth or Raw Pixelated
+          this.offscreenImageData.data.set(this.buf8);
+          this.offscreenCtx.putImageData(this.offscreenImageData, 0, 0);
+
+          this.ctx.imageSmoothingEnabled = (this.filterMode === 'smooth');
+          this.ctx.imageSmoothingQuality = 'high';
+          this.ctx.drawImage(this.offscreenCanvas, 0, 0, 512, 480);
+        }
       },
       onAudioSample: (left, right) => {
         // Feed sample into circular ring buffer
@@ -74,6 +106,48 @@ class NesEmulator {
       },
       sampleRate: 44100
     });
+  }
+
+  setFilter(mode) {
+    if (!['smooth', 'scale2x', 'pixelated'].includes(mode)) mode = 'smooth';
+    this.filterMode = mode;
+    localStorage.setItem('duplinha_filter', mode);
+    return mode;
+  }
+
+  _applyScale2x(src, dst, width, height) {
+    const dstWidth = width << 1;
+    for (let y = 0; y < height; y++) {
+      const yPrev = (y > 0 ? y - 1 : 0) * width;
+      const yCurr = y * width;
+      const yNext = (y < height - 1 ? y + 1 : height - 1) * width;
+      const dstY0 = (y << 1) * dstWidth;
+      const dstY1 = ((y << 1) + 1) * dstWidth;
+
+      for (let x = 0; x < width; x++) {
+        const xPrev = x > 0 ? x - 1 : 0;
+        const xNext = x < width - 1 ? x + 1 : width - 1;
+
+        const P = src[yCurr + x];
+        const A = src[yPrev + x];
+        const C = src[yCurr + xPrev];
+        const B = src[yCurr + xNext];
+        const D = src[yNext + x];
+
+        let E0 = P, E1 = P, E2 = P, E3 = P;
+
+        if (C === A && C !== D && A !== B) E0 = A;
+        if (A === B && A !== C && B !== D) E1 = B;
+        if (D === C && D !== B && C !== A) E2 = C;
+        if (B === D && B !== A && D !== C) E3 = D;
+
+        const dstX = x << 1;
+        dst[dstY0 + dstX] = E0;
+        dst[dstY0 + dstX + 1] = E1;
+        dst[dstY1 + dstX] = E2;
+        dst[dstY1 + dstX + 1] = E3;
+      }
+    }
   }
 
   _initAudioContext() {
