@@ -486,18 +486,70 @@ class SmsEmulator {
     return this.isMuted;
   }
 
+  // IndexedDB Persistent Storage Helper
+  _openDB() {
+    if (this._dbPromise) return this._dbPromise;
+    this._dbPromise = new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') {
+        return reject(new Error('IndexedDB não suportado'));
+      }
+      const req = indexedDB.open('duplinha_sms_db', 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains('save_states')) {
+          req.result.createObjectStore('save_states');
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return this._dbPromise;
+  }
+
+  async _dbSet(key, val) {
+    try {
+      const db = await this._openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('save_states', 'readwrite');
+        tx.objectStore('save_states').put(val, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
+    } catch (e) {
+      console.warn('IndexedDB set falhou:', e);
+      return false;
+    }
+  }
+
+  async _dbGet(key) {
+    try {
+      const db = await this._openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('save_states', 'readonly');
+        const req = tx.objectStore('save_states').get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn('IndexedDB get falhou:', e);
+      return null;
+    }
+  }
+
   async saveState() {
     if (!this.sms) return false;
     try {
       const state = this.sms.saveState();
-      if (state && this.currentRomName) {
-        const stateStr = JSON.stringify(state);
-        localStorage.setItem(`duplinha_sms_save_${this.currentRomName}`, stateStr);
+      if (state) {
+        this.memorySaveState = state;
+        if (this.currentRomName) {
+          await this._dbSet(`duplinha_sms_save_${this.currentRomName}`, state);
+        }
         return true;
       }
       return false;
     } catch (e) {
       console.error('Falha ao salvar estado SMS:', e);
+      if (this.memorySaveState) return true;
       return false;
     }
   }
@@ -505,11 +557,19 @@ class SmsEmulator {
   async loadState() {
     if (!this.sms || !this.currentRomName) return false;
     try {
-      const stored = localStorage.getItem(`duplinha_sms_save_${this.currentRomName}`);
-      if (!stored) return false;
-      const state = JSON.parse(stored);
+      let state = this.memorySaveState;
+      if (!state && this.currentRomName) {
+        state = await this._dbGet(`duplinha_sms_save_${this.currentRomName}`);
+      }
+      if (!state && this.currentRomName) {
+        try {
+          const stored = localStorage.getItem(`duplinha_sms_save_${this.currentRomName}`);
+          if (stored) state = JSON.parse(stored);
+        } catch (_) {}
+      }
       if (state) {
         this.sms.loadState(state);
+        this.memorySaveState = state;
         return true;
       }
       return false;

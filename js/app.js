@@ -162,15 +162,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (playerNum === 1) {
         if (buttonName === 'SAVE_STATE') {
           if (isDown) {
-            const saved = emulator.saveState();
-            showToast(saved ? '💾 Estado Salvo com Sucesso! (LB)' : 'Falha ao salvar estado.');
+            Promise.resolve(emulator.saveState()).then(saved => {
+              showToast(saved ? '💾 Estado Salvo com Sucesso! (LB)' : 'Falha ao salvar estado.');
+            });
           }
           return;
         }
         if (buttonName === 'LOAD_STATE') {
           if (isDown) {
-            const loaded = emulator.loadState();
-            showToast(loaded ? '📂 Estado Carregado! (RB)' : 'Nenhum estado salvo encontrado.');
+            Promise.resolve(emulator.loadState()).then(loaded => {
+              showToast(loaded ? '📂 Estado Carregado! (RB)' : 'Nenhum estado salvo encontrado.');
+            });
           }
           return;
         }
@@ -366,13 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('🔄 ROM Reiniciada');
   });
 
-  document.getElementById('btnSaveState').addEventListener('click', () => {
-    const saved = emulator.saveState();
+  document.getElementById('btnSaveState').addEventListener('click', async () => {
+    const saved = await emulator.saveState();
     showToast(saved ? '💾 Estado Salvo com Sucesso!' : 'Falha ao salvar estado.');
   });
 
-  document.getElementById('btnLoadState').addEventListener('click', () => {
-    const loaded = emulator.loadState();
+  document.getElementById('btnLoadState').addEventListener('click', async () => {
+    const loaded = await emulator.loadState();
     showToast(loaded ? '📂 Estado Carregado!' : 'Nenhum estado salvo encontrado.');
   });
 

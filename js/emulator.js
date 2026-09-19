@@ -366,31 +366,100 @@ class NesEmulator {
     return this.isMuted;
   }
 
-  saveState() {
-    if (!this.nes) return null;
-    try {
-      const state = this.nes.toJSON();
-      const stateStr = JSON.stringify(state);
-      if (this.currentRomName) {
-        localStorage.setItem(`duplinha_save_${this.currentRomName}`, stateStr);
+  // IndexedDB Persistent Storage Helper for Large Save States (>1MB)
+  _openDB() {
+    if (this._dbPromise) return this._dbPromise;
+    this._dbPromise = new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') {
+        return reject(new Error('IndexedDB não suportado'));
       }
-      return state;
+      const req = indexedDB.open('duplinha_nes_db', 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains('save_states')) {
+          req.result.createObjectStore('save_states');
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return this._dbPromise;
+  }
+
+  async _dbSet(key, val) {
+    try {
+      const db = await this._openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('save_states', 'readwrite');
+        tx.objectStore('save_states').put(val, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => reject(tx.error);
+      });
     } catch (e) {
-      console.error('Falha ao salvar estado:', e);
+      console.warn('IndexedDB set falhou:', e);
+      return false;
+    }
+  }
+
+  async _dbGet(key) {
+    try {
+      const db = await this._openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction('save_states', 'readonly');
+        const req = tx.objectStore('save_states').get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    } catch (e) {
+      console.warn('IndexedDB get falhou:', e);
       return null;
     }
   }
 
-  loadState(savedState = null) {
+  async saveState() {
+    if (!this.nes) return null;
+    try {
+      const state = this.nes.toJSON();
+      // 1. Instant in-memory save (always reliable and zero-latency)
+      this.memorySaveState = state;
+
+      // 2. Persist to IndexedDB (bypasses localStorage 5MB quota)
+      if (this.currentRomName) {
+        await this._dbSet(`duplinha_save_${this.currentRomName}`, state);
+      }
+      return state;
+    } catch (e) {
+      console.error('Falha ao salvar estado:', e);
+      if (this.memorySaveState) return this.memorySaveState;
+      return null;
+    }
+  }
+
+  async loadState(savedState = null) {
     if (!this.nes) return false;
     try {
       let state = savedState;
-      if (!state && this.currentRomName) {
-        const stored = localStorage.getItem(`duplinha_save_${this.currentRomName}`);
-        if (stored) state = JSON.parse(stored);
+
+      // 1. In-memory state
+      if (!state && this.memorySaveState) {
+        state = this.memorySaveState;
       }
+
+      // 2. IndexedDB state
+      if (!state && this.currentRomName) {
+        state = await this._dbGet(`duplinha_save_${this.currentRomName}`);
+      }
+
+      // 3. Fallback to localStorage (legacy)
+      if (!state && this.currentRomName) {
+        try {
+          const stored = localStorage.getItem(`duplinha_save_${this.currentRomName}`);
+          if (stored) state = JSON.parse(stored);
+        } catch (_) {}
+      }
+
       if (state) {
         this.nes.fromJSON(state);
+        this.memorySaveState = state;
         return true;
       }
       return false;
