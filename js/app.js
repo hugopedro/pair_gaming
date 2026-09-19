@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function triggerRewind(seconds = 3) {
     const success = emulator.rewind(seconds);
     if (success) {
+      if (typeof input !== 'undefined' && input && input.vibrate) input.vibrate('soft');
       showToast(`⏪ Rebobinado ${seconds}s no tempo!`);
     } else {
       showToast('⚠️ Sem histórico suficiente para rebobinar ainda.');
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleCoPilot() {
     coPilotActive = !coPilotActive;
     updateCoPilotUI();
+    if (typeof input !== 'undefined' && input && input.vibrate) input.vibrate('pulse');
     if (multiplayer && multiplayer.mode === 'HOST') {
       multiplayer.sendCopilotStatus(coPilotActive);
     }
@@ -223,6 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
       text: text,
       isMine: false
     });
+    if (typeof input !== 'undefined' && input && input.vibrate) {
+      input.vibrate('soft');
+    }
   };
 
   // 3. Initialize Input System
@@ -294,6 +299,27 @@ document.addEventListener('DOMContentLoaded', () => {
       );
     }
   );
+
+  // Initialize Reactions & Soundboard
+  const reactions = new ReactionsManager({
+    cabinet: document.querySelector('.screen-cabinet'),
+    multiplayer: multiplayer,
+    inputManager: input,
+    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Namorada' : 'Hugo')
+  });
+  window.reactions = reactions;
+
+  multiplayer.onReaction = (reactionId, sender) => {
+    reactions.trigger(reactionId, false, sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada'));
+  };
+
+  // Initialize Clip Recorder (10s rolling buffer)
+  const clipRecorder = new ClipRecorder({
+    canvas: canvas,
+    video: remoteVideo,
+    onStatusChange: (msg) => showToast(msg)
+  });
+  window.clipRecorder = clipRecorder;
 
   // 4. ROM Loading Helper
   function loadRomFromArrayBuffer(buffer, name) {
@@ -520,8 +546,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 6. Multiplayer Modal Actions
+  const customRoomInput = document.getElementById('customRoomInput');
+  const savedCustomRoom = localStorage.getItem('duplinha_custom_room');
+  if (customRoomInput && savedCustomRoom) {
+    customRoomInput.value = savedCustomRoom;
+  }
+
   document.getElementById('btnCreateRoom').addEventListener('click', () => {
-    multiplayer.createRoom(() => emulator.getMediaStream());
+    const customRoom = customRoomInput ? customRoomInput.value.trim() : '';
+    if (customRoom) {
+      localStorage.setItem('duplinha_custom_room', customRoom);
+    }
+    multiplayer.createRoom(() => emulator.getMediaStream(), customRoom);
     const interval = setInterval(() => {
       if (multiplayer.roomId) {
         clearInterval(interval);

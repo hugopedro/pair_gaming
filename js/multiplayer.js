@@ -23,17 +23,30 @@ class MultiplayerManager {
     this.onAspectRatioChange = null;        // (ratio) => {}
     this.onCopilotChange = null;            // (active) => {}
     this.onChatMessage = null;              // (sender, text) => {}
+    this.onReaction = null;                 // (reactionId, sender) => {}
     this.currentRatio = '4-3';
+    this.autoReconnect = true;
+    this.reconnectAttempts = 0;
+    this.getLocalMediaStream = null;
   }
 
-  createRoom(getLocalMediaStream) {
+  createRoom(getLocalMediaStream, customRoomId = '') {
     this._cleanup();
     this.mode = 'HOST';
+    this.getLocalMediaStream = getLocalMediaStream;
 
-    const randomSuffix = Math.random().toString(36).substring(2, 7);
-    const generatedId = `duplinha-${randomSuffix}`;
+    let targetId = '';
+    if (customRoomId && customRoomId.trim()) {
+      targetId = customRoomId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      if (!targetId.startsWith('duplinha-')) {
+        targetId = `duplinha-${targetId}`;
+      }
+    } else {
+      const randomSuffix = Math.random().toString(36).substring(2, 7);
+      targetId = `duplinha-${randomSuffix}`;
+    }
 
-    this.peer = new Peer(generatedId, {
+    this.peer = new Peer(targetId, {
       debug: 1
     });
 
@@ -52,11 +65,17 @@ class MultiplayerManager {
     // Handle Client connecting via DataChannel
     this.peer.on('connection', (connection) => {
       this.conn = connection;
-      this._setupHostDataConnection(getLocalMediaStream);
+      this._setupHostDataConnection(this.getLocalMediaStream);
     });
 
     this.peer.on('error', (err) => {
       console.error('Erro no PeerJS Host:', err);
+      if (err.type === 'unavailable-id') {
+        const fallbackId = `${targetId}-${Math.random().toString(36).substring(2, 6)}`;
+        console.warn(`ID de sala '${targetId}' ocupado. Tentando ID único: ${fallbackId}...`);
+        this.createRoom(getLocalMediaStream, fallbackId);
+        return;
+      }
       if (this.onStatusChange) {
         this.onStatusChange(`Erro: ${err.type || err.message}`, 'OFFLINE');
       }
@@ -99,6 +118,10 @@ class MultiplayerManager {
       } else if (data.type === 'CHAT') {
         if (this.onChatMessage) {
           this.onChatMessage(data.sender, data.text);
+        }
+      } else if (data.type === 'REACTION') {
+        if (this.onReaction) {
+          this.onReaction(data.reactionId, data.sender);
         }
       } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
@@ -167,6 +190,7 @@ class MultiplayerManager {
   _setupClientDataConnection() {
     this.conn.on('open', () => {
       this.isConnected = true;
+      this.reconnectAttempts = 0;
       console.log('Conectado ao Host com sucesso!');
       if (this.onStatusChange) {
         this.onStatusChange('Conectado ao Host (Player 2)', 'ONLINE');
@@ -184,6 +208,8 @@ class MultiplayerManager {
         if (this.onCopilotChange) this.onCopilotChange(data.active);
       } else if (data.type === 'CHAT') {
         if (this.onChatMessage) this.onChatMessage(data.sender, data.text);
+      } else if (data.type === 'REACTION') {
+        if (this.onReaction) this.onReaction(data.reactionId, data.sender);
       } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
       } else if (data.type === 'PONG') {
@@ -195,10 +221,24 @@ class MultiplayerManager {
     this.conn.on('close', () => {
       this.isConnected = false;
       console.log('Conexão com Host encerrada.');
-      if (this.onStatusChange) {
-        this.onStatusChange('Desconectado do Host', 'OFFLINE');
-      }
       this._stopPingMonitor();
+
+      if (this.autoReconnect && this.mode === 'CLIENT' && this.roomId && this.reconnectAttempts < 5) {
+        this.reconnectAttempts++;
+        if (this.onStatusChange) {
+          this.onStatusChange(`Conexão oscilou. Reconectando (${this.reconnectAttempts}/5)...`, 'WAITING');
+        }
+        setTimeout(() => {
+          if (!this.isConnected && this.mode === 'CLIENT') {
+            console.log(`Reconectando à sala ${this.roomId}...`);
+            this.joinRoom(this.roomId);
+          }
+        }, 2500);
+      } else {
+        if (this.onStatusChange) {
+          this.onStatusChange('Desconectado do Host', 'OFFLINE');
+        }
+      }
     });
   }
 
@@ -207,6 +247,18 @@ class MultiplayerManager {
       this.conn.send({
         type: 'CHAT',
         text: text,
+        sender: sender
+      });
+      return true;
+    }
+    return false;
+  }
+
+  sendReaction(reactionId, sender = '') {
+    if (this.isConnected && this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'REACTION',
+        reactionId: reactionId,
         sender: sender
       });
       return true;

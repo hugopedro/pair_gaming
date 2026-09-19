@@ -1203,5 +1203,173 @@ body.player2-mode .toast-container {
   font-size: 12px !important;
 }
 
+/* ==========================================================================
+   Quick Reactions & Retro Soundboard Styles
+   ========================================================================== */
+.reactions-bar {
+  position: absolute;
+  bottom: 84px;
+  left: 20px;
+  z-index: 56;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10, 14, 26, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  opacity: 0.75;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.reactions-bar:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.3);
+}
+
+.reaction-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 16px;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.reaction-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.15);
+}
+
+.reaction-btn:active {
+  transform: scale(0.95);
+}
+
+.r-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.r-key {
+  font-size: 9px;
+  font-family: var(--font-retro);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Floating Reaction Animation Burst */
+.reaction-burst-container {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 75;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.reaction-banner {
+  background: rgba(8, 11, 22, 0.88);
+  border: 1px solid var(--neon-yellow);
+  box-shadow: 0 0 20px rgba(255, 235, 59, 0.35);
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: reactionBannerIn 2s forwards;
+  backdrop-filter: blur(8px);
+}
+
+.rb-emoji {
+  font-size: 24px;
+}
+
+.rb-sender {
+  font-family: var(--font-retro);
+  font-size: 11px;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+@keyframes reactionBannerIn {
+  0% { opacity: 0; transform: scale(0.6) translateY(20px); }
+  15% { opacity: 1; transform: scale(1.05) translateY(0); }
+  25% { transform: scale(1) translateY(0); }
+  75% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+.reaction-particle {
+  position: absolute;
+  font-size: 32px;
+  user-select: none;
+  animation: floatParticle 1.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes floatParticle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(var(--scale)) rotate(var(--rot));
+  }
+}
+
+/* Save Clip Button */
+.btn-clip-save {
+  background: rgba(156, 39, 176, 0.18);
+  border: 1px solid rgba(156, 39, 176, 0.5);
+  color: #e1bee7;
+  font-weight: 700;
+}
+
+.btn-clip-save:hover {
+  background: rgba(156, 39, 176, 0.35);
+  border-color: #ba68c8;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(186, 104, 200, 0.6);
+}
+
+/* Fullscreen adjustments for Reactions Bar */
+.screen-cabinet:fullscreen .reactions-bar,
+.screen-cabinet:-webkit-full-screen .reactions-bar,
+:fullscreen .reactions-bar,
+:-webkit-full-screen .reactions-bar {
+  bottom: 104px;
+  left: 32px;
+  padding: 6px 12px;
+  gap: 8px;
+}
+
+.screen-cabinet:fullscreen .r-emoji,
+.screen-cabinet:-webkit-full-screen .r-emoji,
+:fullscreen .r-emoji,
+:-webkit-full-screen .r-emoji {
+  font-size: 22px;
+}
+
+
 
 

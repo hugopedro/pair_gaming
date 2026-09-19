@@ -273,4 +273,35 @@ class InputManager {
     this.isSwapped = !this.isSwapped;
     return this.isSwapped;
   }
+
+  /**
+   * Triggers haptic feedback / rumble on connected Xbox controllers
+   * Patterns: 'soft', 'pulse', 'heartbeat', 'strong', 'medium'
+   */
+  vibrate(pattern = 'medium') {
+    if (!('getGamepads' in navigator)) return;
+    try {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let effect = { startDelay: 0, duration: 200, weakMagnitude: 0.5, strongMagnitude: 0.5 };
+      if (pattern === 'soft') {
+        effect = { startDelay: 0, duration: 120, weakMagnitude: 0.35, strongMagnitude: 0.1 };
+      } else if (pattern === 'pulse') {
+        effect = { startDelay: 0, duration: 180, weakMagnitude: 0.8, strongMagnitude: 0.4 };
+      } else if (pattern === 'heartbeat') {
+        effect = { startDelay: 0, duration: 260, weakMagnitude: 0.7, strongMagnitude: 0.7 };
+      } else if (pattern === 'strong') {
+        effect = { startDelay: 0, duration: 350, weakMagnitude: 1.0, strongMagnitude: 0.8 };
+      }
+
+      for (let i = 0; i < gamepads.length; i++) {
+        const gp = gamepads[i];
+        if (gp && gp.vibrationActuator && typeof gp.vibrationActuator.playEffect === 'function') {
+          gp.vibrationActuator.playEffect('dual-rumble', effect).catch(() => {});
+        }
+      }
+    } catch (_) {
+      // Haptics fail silently if unsupported
+    }
+  }
 }
+

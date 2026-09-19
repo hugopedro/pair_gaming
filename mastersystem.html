@@ -64,6 +64,9 @@
       <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360 no Master System">
         <span>🎮</span> <span>Controles (Xbox 360)</span>
       </button>
+      <button class="btn btn-clip-save" id="btnClipTop" title="Gravar e baixar clipe dos últimos 10 segundos em vídeo (Atalho: F9)">
+        <span>📹</span> <span>Clipe (10s)</span>
+      </button>
       <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
         <span>⛶</span>
       </button>
@@ -195,6 +198,10 @@
         <!-- Host section -->
         <div class="input-group" style="background: #081026; padding: 14px; border-radius: 8px; border: 1px solid var(--sms-border);">
           <label style="color: #38bdf8; font-weight: bold;">OPÇÃO 1: CRIAR SALA (Você é o Host - Player 1)</label>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin: 8px 0;">
+            <label for="customRoomInput" style="font-size: 11px; color: var(--text-muted);">🏠 Nome Fixo / "Nosso Cantinho" (Opcional):</label>
+            <input type="text" class="input-text" id="customRoomInput" placeholder="Ex: hugo-amor (deixe vazio para aleatório)" maxlength="20" style="padding: 7px 10px; font-size: 12px;">
+          </div>
           <button class="btn btn-sega-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
             ⚡ GERAR LINK DA SALA
           </button>
@@ -291,6 +298,16 @@
               <td><span class="xbox-btn xbox-shoulder">💬</span> (Botão na tela)</td>
               <td><kbd>Enter</kbd> ou <kbd>T</kbd></td>
             </tr>
+            <tr>
+              <td><strong>REAÇÕES RÁPIDAS 🎉</strong></td>
+              <td>Botão na tela (Vibra controle)</td>
+              <td><kbd>1</kbd> a <kbd>5</kbd> (❤️, 😂, 😱, 👏, 💀)</td>
+            </tr>
+            <tr>
+              <td><strong>SALVAR CLIPE (10s) 📹</strong></td>
+              <td>Botão no topo</td>
+              <td><kbd>F9</kbd></td>
+            </tr>
           </tbody>
         </table>
 
@@ -306,12 +323,14 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="js/sms.min.js?v=10"></script>
-  <script src="js/xbrz.js?v=10"></script>
-  <script src="js/sms-emulator.js?v=10"></script>
-  <script src="js/input.js?v=10"></script>
-  <script src="js/multiplayer.js?v=10"></script>
-  <script src="js/chat.js?v=10"></script>
-  <script src="js/sms-app.js?v=10"></script>
+  <script src="js/sms.min.js?v=11"></script>
+  <script src="js/xbrz.js?v=11"></script>
+  <script src="js/sms-emulator.js?v=11"></script>
+  <script src="js/input.js?v=11"></script>
+  <script src="js/multiplayer.js?v=11"></script>
+  <script src="js/chat.js?v=11"></script>
+  <script src="js/reactions.js?v=11"></script>
+  <script src="js/clip-recorder.js?v=11"></script>
+  <script src="js/sms-app.js?v=11"></script>
 </body>
 </html>
