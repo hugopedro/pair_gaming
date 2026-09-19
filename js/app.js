@@ -30,22 +30,26 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', ensureAudio, { once: true });
   window.addEventListener('keydown', ensureAudio, { once: true });
 
-  // Aspect Ratio System (4:3 CRT TV, 16:10 Wide Suave, 16:9 Total, 8:7 Original)
+  // Aspect Ratio System (SuperWide 16:9, 4:3 CRT TV, 16:10 Wide Suave, 16:9 Total, 8:7 Original)
   const aspectRatios = {
+    'superwide': 'SuperWide 🌟 (16:9 Inteligente)',
     '4-3': '4:3 (TV CRT)',
     '16-10': '16:10 (Wide Suave)',
     '16-9': '16:9 (Total)',
     'original': '8:7 (Original)'
   };
-  let currentRatio = localStorage.getItem('duplinha_ratio') || '4-3';
+  let currentRatio = localStorage.getItem('duplinha_ratio') || 'superwide';
 
   function updateAspectRatioUI(ratio, shouldBroadcast = true) {
     currentRatio = ratio;
     localStorage.setItem('duplinha_ratio', ratio);
     const label = document.getElementById('aspectRatioLabel');
-    if (label) label.textContent = aspectRatios[ratio] || '4:3 (TV CRT)';
-    document.body.classList.remove('ratio-4-3', 'ratio-16-10', 'ratio-16-9', 'ratio-original');
+    if (label) label.textContent = aspectRatios[ratio] || 'SuperWide 🌟 (16:9 Inteligente)';
+    document.body.classList.remove('ratio-superwide', 'ratio-4-3', 'ratio-16-10', 'ratio-16-9', 'ratio-original');
     document.body.classList.add(`ratio-${ratio}`);
+    if (typeof emulator !== 'undefined' && emulator) {
+      emulator.setAspectRatio(ratio);
+    }
     if (shouldBroadcast && typeof multiplayer !== 'undefined' && multiplayer && multiplayer.mode === 'HOST') {
       multiplayer.sendAspectRatio(ratio);
     }
@@ -290,7 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAspectRatio = document.getElementById('btnAspectRatio');
   if (btnAspectRatio) {
     btnAspectRatio.addEventListener('click', () => {
-      const order = ['4-3', '16-10', '16-9', 'original'];
+      const order = ['superwide', '4-3', '16-10', '16-9', 'original'];
       const nextIdx = (order.indexOf(currentRatio) + 1) % order.length;
       const nextRatio = order[nextIdx];
       updateAspectRatioUI(nextRatio, true);

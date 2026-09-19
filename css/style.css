@@ -193,7 +193,12 @@ html, body {
   transition: aspect-ratio 0.25s ease;
 }
 
-/* Aspect Ratio Variations (4:3 CRT TV, 16:10 Wide Suave, 16:9 Wide Total, 8:7 Original) */
+/* Aspect Ratio Variations (SuperWide 16:9, 4:3 CRT TV, 16:10 Wide Suave, 16:9 Wide Total, 8:7 Original) */
+body.ratio-superwide .screen-cabinet,
+body.ratio-superwide #remoteVideo {
+  aspect-ratio: 16 / 9 !important;
+}
+
 body.ratio-4-3 .screen-cabinet,
 body.ratio-4-3 #remoteVideo {
   aspect-ratio: 4 / 3 !important;

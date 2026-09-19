@@ -12,9 +12,8 @@ class NesEmulator {
     // Active graphic filter mode: 'smooth' | 'scale2x' | 'pixelated'
     this.filterMode = localStorage.getItem('duplinha_filter') || 'smooth';
 
-    // Canvas native resolution set to 512x480 (Double resolution for HD anti-aliasing)
-    this.canvas.width = 512;
-    this.canvas.height = 480;
+    // Active aspect ratio mode: 'superwide' | '4-3' | '16-10' | '16-9' | 'original'
+    this.aspectRatioMode = localStorage.getItem('duplinha_ratio') || 'superwide';
 
     // Internal 256x240 buffer for JSNES
     this.offscreenCanvas = document.createElement('canvas');
@@ -30,14 +29,26 @@ class NesEmulator {
       this.buf32[i] = 0xFF000000; // Black opaque
     }
 
+    // Intermediate 512x480 canvas for filtering
+    this.scaleCanvas = document.createElement('canvas');
+    this.scaleCanvas.width = 512;
+    this.scaleCanvas.height = 480;
+    this.scaleCtx = this.scaleCanvas.getContext('2d', { alpha: false });
+
     // 512x480 Buffer for Scale2x filter
-    this.scaleImageData = this.ctx.createImageData(512, 480);
+    this.scaleImageData = this.scaleCtx.createImageData(512, 480);
     this.scaleBuf = new ArrayBuffer(this.scaleImageData.data.length);
     this.scaleBuf8 = new Uint8ClampedArray(this.scaleBuf);
     this.scaleBuf32 = new Uint32Array(this.scaleBuf);
     for (let i = 0; i < this.scaleBuf32.length; i++) {
       this.scaleBuf32[i] = 0xFF000000;
     }
+
+    // Precompute SuperWide non-linear stretch strip table
+    this._initSuperWideTable();
+
+    // Set canvas dimensions according to aspect ratio
+    this._updateCanvasSize();
 
     // Audio Pipeline
     this.audioCtx = null;
@@ -72,6 +83,62 @@ class NesEmulator {
     this._initNES();
   }
 
+  _updateCanvasSize() {
+    const widthMap = {
+      'superwide': 854,
+      '16-9': 854,
+      '16-10': 768,
+      '4-3': 640,
+      'original': 512
+    };
+    const targetW = widthMap[this.aspectRatioMode] || 854;
+    if (this.canvas.width !== targetW || this.canvas.height !== 480) {
+      this.canvas.width = targetW;
+      this.canvas.height = 480;
+    }
+  }
+
+  setAspectRatio(ratio) {
+    this.aspectRatioMode = ratio;
+    this._updateCanvasSize();
+  }
+
+  _initSuperWideTable() {
+    const N = 32;
+    const srcW = 512;
+    const dstW = 854;
+    const a = 0.75; // 0.75 preserves exact 4:3 scale at center
+    this.superWideTable = [];
+
+    for (let i = 0; i < N; i++) {
+      const u0 = i / N;
+      const u1 = (i + 1) / N;
+      const s0 = 2 * u0 - 1;
+      const s1 = 2 * u1 - 1;
+
+      const d0 = (a * s0 + (1 - a) * Math.pow(s0, 3) + 1) / 2;
+      const d1 = (a * s1 + (1 - a) * Math.pow(s1, 3) + 1) / 2;
+
+      const sx = i * (srcW / N);
+      const sw = srcW / N;
+      const dx = d0 * dstW;
+      const dw = (d1 * dstW) - dx + 0.6; // Overlap to prevent seams
+
+      this.superWideTable.push({ sx, sw, dx, dw });
+    }
+  }
+
+  _drawSuperWide() {
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+    const table = this.superWideTable;
+    const len = table.length;
+    for (let i = 0; i < len; i++) {
+      const s = table[i];
+      this.ctx.drawImage(this.scaleCanvas, s.sx, 0, s.sw, 480, s.dx, 0, s.dw, 480);
+    }
+  }
+
   _initNES() {
     this.nes = new jsnes.NES({
       onFrame: (frameBuffer) => {
@@ -80,19 +147,27 @@ class NesEmulator {
           this.buf32[i] = 0xFF000000 | frameBuffer[i];
         }
 
+        // 1. Render to intermediate 512x480 scaleCanvas
         if (this.filterMode === 'scale2x') {
-          // Scale2x: Intelligent pixel-art edge rounding
           this._applyScale2x(this.buf32, this.scaleBuf32, 256, 240);
           this.scaleImageData.data.set(this.scaleBuf8);
-          this.ctx.putImageData(this.scaleImageData, 0, 0);
+          this.scaleCtx.putImageData(this.scaleImageData, 0, 0);
         } else {
-          // Bilinear HD Smooth or Raw Pixelated
           this.offscreenImageData.data.set(this.buf8);
           this.offscreenCtx.putImageData(this.offscreenImageData, 0, 0);
 
+          this.scaleCtx.imageSmoothingEnabled = (this.filterMode === 'smooth');
+          this.scaleCtx.imageSmoothingQuality = 'high';
+          this.scaleCtx.drawImage(this.offscreenCanvas, 0, 0, 512, 480);
+        }
+
+        // 2. Render to final canvas (SuperWide non-linear or standard aspect ratio)
+        if (this.aspectRatioMode === 'superwide') {
+          this._drawSuperWide();
+        } else {
           this.ctx.imageSmoothingEnabled = (this.filterMode === 'smooth');
           this.ctx.imageSmoothingQuality = 'high';
-          this.ctx.drawImage(this.offscreenCanvas, 0, 0, 512, 480);
+          this.ctx.drawImage(this.scaleCanvas, 0, 0, this.canvas.width, this.canvas.height);
         }
       },
       onAudioSample: (left, right) => {
