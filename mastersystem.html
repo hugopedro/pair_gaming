@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Duplinha NES - Emulador Online P2P Co-op 2 Jogadores</title>
+  <title>Duplinha Master - Emulador Sega Master System P2P Co-op 2 Jogadores</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sms-style.css">
 </head>
 <body>
 
   <!-- Top Navigation Bar -->
   <header class="top-nav">
     <div class="brand">
-      <span class="brand-icon">🎮</span>
-      <span class="brand-title">DUPLINHA NES</span>
-      <span class="brand-badge">P2P CO-OP</span>
+      <span class="brand-icon">🕹️</span>
+      <span class="brand-title">DUPLINHA MASTER</span>
+      <span class="brand-badge sega-badge">SEGA P2P</span>
     </div>
 
     <div class="header-status">
@@ -32,33 +32,27 @@
         <span id="fpsBadge">60 FPS</span>
       </div>
       <div class="status-pill" title="Filtro de Vídeo xBRZ 6x Ativo">
-        <span style="color: var(--neon-cyan); font-weight: bold;">✨ xBRZ 6x</span>
+        <span style="color: #38bdf8; font-weight: bold;">✨ xBRZ 6x</span>
       </div>
     </div>
 
     <div class="nav-actions">
-      <!-- Switcher to Master System -->
-      <a href="mastersystem.html" class="btn btn-sega" title="Abrir emulador do Sega Master System">
-        <span>🕹️</span> <span>Master System</span>
+      <!-- Fast Switcher to NES -->
+      <a href="index.html" class="btn btn-nes-nav" title="Mudar para o emulador de Nintendinho (NES)">
+        <span>🎮</span> <span>Nintendinho (NES)</span>
       </a>
 
-      <input type="file" id="romInput" accept=".nes" style="display: none;">
-      <button class="btn btn-primary" id="btnLoadRom" title="Carregar arquivo .nes do seu computador">
+      <input type="file" id="romInput" accept=".sms,.bin" style="display: none;">
+      <button class="btn btn-sega-primary" id="btnLoadRom" title="Carregar arquivo .sms ou .bin do seu computador">
         <span>📁</span> <span>Carregar ROM</span>
       </button>
-      <button class="btn" id="loadPongBtn" title="Carregar o jogo Pong clássico de 2 jogadores">
-        <span>🕹️</span> <span>Pong (2P)</span>
-      </button>
-      <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
+      <button class="btn btn-sega-primary" id="btnMultiplayer" title="Convidar amiga via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
       <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
         <span>📐</span> <span id="aspectRatioLabel">SuperWide 🌟</span>
       </button>
-      <button class="btn" id="btnCrop" title="Cortar bordas pretas de overscan do NES para preencher toda a tela">
-        <span>✂️</span> <span id="cropLabel">Bordas: Cortadas ✨</span>
-      </button>
-      <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360">
+      <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360 no Master System">
         <span>🎮</span> <span>Controles (Xbox 360)</span>
       </button>
       <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
@@ -70,16 +64,16 @@
   <!-- Main Viewport (Screen Cabinet) -->
   <main class="main-viewport">
     <div class="screen-cabinet">
-      <!-- Host / Local Emulator Canvas -->
-      <canvas id="nesCanvas"></canvas>
+      <!-- Host / Local Master System Canvas -->
+      <canvas id="smsCanvas" width="256" height="192"></canvas>
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline></video>
 
       <!-- Drag and Drop Overlay -->
       <div class="drop-zone" id="dropZone">
-        <div class="drop-icon">💾</div>
-        <div class="drop-text">SOLTE A ROM NES AQUI<br>(Arquivo .nes)</div>
+        <div class="drop-icon">🕹️</div>
+        <div class="drop-text">SOLTE A ROM DO MASTER SYSTEM AQUI<br>(Arquivo .sms ou .bin)</div>
       </div>
     </div>
 
@@ -93,13 +87,12 @@
       </div>
 
       <div class="touch-center">
-        <div class="touch-btn btn-select" data-button="BUTTON_SELECT">SELECT</div>
-        <div class="touch-btn btn-start" data-button="BUTTON_START">START</div>
+        <div class="touch-btn btn-start" data-button="BUTTON_START" style="width: 100px;">PAUSE</div>
       </div>
 
       <div class="touch-buttons">
-        <div class="touch-btn btn-b" data-button="BUTTON_B">B</div>
-        <div class="touch-btn btn-a" data-button="BUTTON_A">A</div>
+        <div class="touch-btn btn-b" data-button="BUTTON_2">2</div>
+        <div class="touch-btn btn-a" data-button="BUTTON_1">1</div>
       </div>
     </div>
   </main>
@@ -115,9 +108,9 @@
         <span>P2:</span>
         <span class="device" id="p2Device">🎮 Xbox 360</span>
       </div>
-      <div class="player-tag" style="border-color: #475569;">
+      <div class="player-tag" style="border-color: #1a2952;">
         <span>ROM:</span>
-        <span class="device" id="currentRomLabel">Pong (2 Players)</span>
+        <span class="device" id="currentRomLabel">Nenhuma ROM (Solte .sms)</span>
       </div>
     </div>
 
@@ -125,16 +118,16 @@
       <button class="btn" id="btnSwapP1P2" title="Alternar se o seu controle comanda o Player 1 ou Player 2">
         <span>⇄</span> Inverter (P1)
       </button>
-      <button class="btn" id="btnPause" title="Pausar jogo">
+      <button class="btn" id="btnPause" title="Pausar emulação">
         <span>⏸️</span> Pausar
       </button>
-      <button class="btn" id="btnReset" title="Reiniciar ROM atual">
+      <button class="btn" id="btnReset" title="Reiniciar jogo atual">
         <span>🔄</span> Reset
       </button>
-      <button class="btn" id="btnSaveState" title="Salvar progresso na memória local">
+      <button class="btn" id="btnSaveState" title="Salvar progresso na memória local (LB)">
         <span>💾</span> Salvar
       </button>
-      <button class="btn" id="btnLoadState" title="Carregar progresso salvo">
+      <button class="btn" id="btnLoadState" title="Carregar progresso salvo (RB)">
         <span>📂</span> Carregar
       </button>
       <button class="btn" id="btnTouchToggle" title="Exibir botões na tela para celular/tablet">
@@ -152,113 +145,108 @@
   <div class="modal-backdrop" id="multiplayerModal">
     <div class="modal-card">
       <div class="modal-header">
-        <h2 class="modal-title">🔗 JOGAR ONLINE DE 2 JOGADORES (P2P)</h2>
+        <h2 class="modal-title">🔗 JOGAR MASTER SYSTEM ONLINE (P2P)</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <p style="color: var(--text-muted);">
-          Conecte-se diretamente com sua amiga ponto a ponto (sem passar por nenhum servidor central). O Player 1 transmite a tela e o Player 2 joga em tempo real!
+          Conexão ponto a ponto direta (P2P) via WebRTC. O Player 1 transmite a tela do Master System em 60 FPS com áudio cristalino e a sua amiga joga no PC dela com zero complicação!
         </p>
 
         <!-- Host section -->
-        <div class="input-group" style="background: #111627; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-          <label style="color: var(--neon-cyan); font-weight: bold;">OPÇÃO 1: CRIAR SALA (Você é o Host - Player 1)</label>
-          <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
+        <div class="input-group" style="background: #081026; padding: 14px; border-radius: 8px; border: 1px solid var(--sms-border);">
+          <label style="color: #38bdf8; font-weight: bold;">OPÇÃO 1: CRIAR SALA (Você é o Host - Player 1)</label>
+          <button class="btn btn-sega-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
             ⚡ GERAR LINK DA SALA
           </button>
 
           <div class="share-link-box" id="shareLinkBox" style="display: none; margin-top: 8px;">
             <label>Envie este link para ela:</label>
             <div class="share-link-text" id="shareLinkText"></div>
-            <button class="btn btn-primary" id="btnCopyLink" style="align-self: flex-end;">
+            <button class="btn btn-sega-primary" id="btnCopyLink" style="align-self: flex-end;">
               📋 Copiar Link
             </button>
           </div>
         </div>
 
         <!-- Client section -->
-        <div class="input-group" style="background: #111627; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-          <label style="color: var(--neon-yellow); font-weight: bold;">OPÇÃO 2: ENTRAR EM SALA (Ela criou a sala - Player 2)</label>
+        <div class="input-group" style="background: #081026; padding: 14px; border-radius: 8px; border: 1px solid var(--sms-border);">
+          <label style="color: #ffd600; font-weight: bold;">OPÇÃO 2: ENTRAR EM SALA (Ela criou a sala - Player 2)</label>
           <div class="input-row">
             <input type="text" class="input-text" id="joinRoomInput" placeholder="Cole o Link ou ID da sala aqui...">
-            <button class="btn btn-primary" id="btnJoinRoom">Entrar</button>
+            <button class="btn btn-sega-primary" id="btnJoinRoom">Entrar</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal: Controles Xbox 360 -->
+  <!-- Modal: Controles Xbox 360 para Sega Master System -->
   <div class="modal-backdrop" id="controlsModal">
     <div class="modal-card" style="width: 640px;">
       <div class="modal-header">
-        <h2 class="modal-title">🎮 CONTROLE XBOX 360 (MAPEAMENTO)</h2>
+        <h2 class="modal-title">🎮 CONTROLE XBOX 360 (SEGA MASTER SYSTEM)</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <p style="color: var(--text-muted); font-size: 12px;">
-          Plugue seu joystick de <strong>Xbox 360</strong> (ou qualquer controle compatível com XInput / USB / Bluetooth). Ele é reconhecido automaticamente sem precisar configurar nada!
+          Plugue seu joystick de <strong>Xbox 360</strong>. O console Sega Master System originalmente possui apenas 2 botões de ação e um botão Pause no console.
         </p>
 
         <table class="controls-table">
           <thead>
             <tr>
-              <th>BOTÃO NES</th>
+              <th>BOTÃO MASTER SYSTEM</th>
               <th>CONTROLE XBOX 360</th>
-              <th>AÇÃO NO JOGO (MARIO / CONTRA)</th>
+              <th>AÇÃO NO JOGO (ALEX KIDD / SONIC)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>BOTÃO A</strong></td>
-              <td><span class="xbox-btn xbox-a">A</span> (Verde) ou <span class="xbox-btn xbox-b">B</span></td>
+              <td><strong>BOTÃO 1 (Gatilho)</strong></td>
+              <td><span class="xbox-btn xbox-a">A</span> (Verde) ou <span class="xbox-btn xbox-x">X</span> (Azul)</td>
               <td>Pular / Ação Primária</td>
             </tr>
             <tr>
-              <td><strong>BOTÃO B</strong></td>
-              <td><span class="xbox-btn xbox-x">X</span> (Azul) ou <span class="xbox-btn xbox-y">Y</span></td>
-              <td>Correr / Atirar / Ação Secundária</td>
+              <td><strong>BOTÃO 2</strong></td>
+              <td><span class="xbox-btn xbox-b">B</span> (Vermelho) ou <span class="xbox-btn xbox-y">Y</span> (Amarelo)</td>
+              <td>Soco / Atacar / Ação Secundária</td>
             </tr>
             <tr>
               <td><strong>SAVE STATE (P1)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">LB</span> (Botão Superior Esquerdo)</td>
+              <td><span class="xbox-btn xbox-shoulder">LB</span> (Ombro Esquerdo)</td>
               <td>Salvar Estado / Progresso Instantâneo</td>
             </tr>
             <tr>
               <td><strong>LOAD STATE (P1)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">RB</span> (Botão Superior Direito)</td>
+              <td><span class="xbox-btn xbox-shoulder">RB</span> (Ombro Direito)</td>
               <td>Carregar Estado / Progresso Instantâneo</td>
             </tr>
             <tr>
-              <td><strong>TURBO A</strong></td>
+              <td><strong>TURBO 1</strong></td>
               <td><span class="xbox-btn xbox-shoulder">RT</span> (Gatilho Direito) [P2: RB ou RT]</td>
-              <td>Pulo Rápido / Disparo Turbo</td>
+              <td>Pulo Rápido / Ação Turbo 1</td>
             </tr>
             <tr>
-              <td><strong>TURBO B</strong></td>
+              <td><strong>TURBO 2</strong></td>
               <td><span class="xbox-btn xbox-shoulder">LT</span> (Gatilho Esquerdo) [P2: LB ou LT]</td>
-              <td>Tiro Contínuo Automático (Machinegun)</td>
+              <td>Ataque Turbo Contínuo</td>
             </tr>
             <tr>
               <td><strong>D-PAD (Direções)</strong></td>
               <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esquerdo</strong></td>
-              <td>Mover / Agachar / Mirar</td>
+              <td>Mover / Agachar / Nadar</td>
             </tr>
             <tr>
-              <td><strong>SELECT</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">BACK</span> (Botão Voltar)</td>
-              <td>Trocar armas / Selecionar modo</td>
-            </tr>
-            <tr>
-              <td><strong>START</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">START</span> (Botão Iniciar)</td>
-              <td>Começar jogo / Pausar</td>
+              <td><strong>PAUSE (Console)</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">START</span> ou <span class="xbox-btn xbox-shoulder">BACK</span></td>
+              <td>Pausar Jogo / Abrir Menu do Jogo</td>
             </tr>
           </tbody>
         </table>
 
-        <div style="background: rgba(0, 230, 118, 0.1); border: 1px dashed var(--neon-green); padding: 10px; border-radius: 6px; font-size: 11px; color: var(--neon-green);">
-          ✨ <strong>Multiplayer P2P:</strong> O Player 1 joga no controle do Host. A sua amiga usa o controle de Xbox 360 dela no PC dela e os comandos são sincronizados instantaneamente via rede P2P direta!
+        <div style="background: rgba(0, 102, 204, 0.15); border: 1px dashed #38bdf8; padding: 10px; border-radius: 6px; font-size: 11px; color: #38bdf8;">
+          ✨ <strong>Multiplayer P2P:</strong> O Player 1 joga no controle do Host. Sua amiga usa o controle dela no PC dela e os comandos são sincronizados instantaneamente via rede P2P direta!
         </div>
       </div>
     </div>
@@ -269,11 +257,11 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="jsnes.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/nostalgist/dist/nostalgist.umd.js"></script>
   <script src="js/xbrz.js"></script>
-  <script src="js/emulator.js"></script>
+  <script src="js/sms-emulator.js"></script>
   <script src="js/input.js"></script>
   <script src="js/multiplayer.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/sms-app.js"></script>
 </body>
 </html>

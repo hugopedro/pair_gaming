@@ -1,0 +1,105 @@
+/* ==========================================================================
+   css/sms-style.css - SEGA Master System Theme for Duplinha Master
+   Authentic 80s SEGA aesthetic: Blue & White Grid, Crimson Red accents,
+   Modern Glassmorphism & Cyber-Retro Polish.
+   ========================================================================== */
+
+@import url('style.css');
+
+:root {
+  --sms-blue: #0066cc;
+  --sms-blue-dark: #003366;
+  --sms-blue-glow: rgba(0, 102, 204, 0.6);
+  --sms-red: #e60012;
+  --sms-red-dark: #99000b;
+  --sms-red-glow: rgba(230, 0, 18, 0.5);
+  --sms-grid: rgba(0, 102, 204, 0.15);
+  --sms-card: #0b1329;
+  --sms-border: #1a2952;
+}
+
+/* Master System Iconic Grid Background */
+body {
+  background-color: #050b18;
+  background-image: 
+    linear-gradient(var(--sms-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--sms-grid) 1px, transparent 1px),
+    radial-gradient(circle at 50% 20%, rgba(0, 102, 204, 0.15) 0%, transparent 70%);
+  background-size: 24px 24px, 24px 24px, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Header SEGA Theme */
+.top-nav {
+  border-bottom: 2px solid var(--sms-blue);
+  background: rgba(5, 11, 24, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 102, 204, 0.25);
+}
+
+.brand-title {
+  background: linear-gradient(135deg, #38bdf8 0%, #0066cc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-badge.sega-badge {
+  background: var(--sms-red);
+  color: #fff;
+  border-color: #ff4d5a;
+  box-shadow: 0 0 10px var(--sms-red-glow);
+}
+
+/* SEGA Primary Button */
+.btn-sega-primary {
+  background: linear-gradient(135deg, #0066cc, #004080);
+  border-color: #38bdf8;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(0, 102, 204, 0.4);
+}
+
+.btn-sega-primary:hover {
+  background: linear-gradient(135deg, #0077ee, #0055aa);
+  border-color: #7dd3fc;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.7);
+  transform: translateY(-2px);
+}
+
+.btn-nes-nav {
+  background: rgba(230, 0, 18, 0.15);
+  border-color: var(--sms-red);
+  color: #ff6b77;
+}
+
+.btn-nes-nav:hover {
+  background: var(--sms-red);
+  color: #fff;
+  box-shadow: 0 0 14px var(--sms-red-glow);
+}
+
+/* Cabinet Border */
+.screen-cabinet {
+  border: 3px solid #1a2952;
+  box-shadow: 0 0 35px rgba(0, 102, 204, 0.35);
+}
+
+body.player2-mode .screen-cabinet {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Status Pills */
+.status-pill {
+  border-color: var(--sms-border);
+  background: rgba(11, 19, 41, 0.85);
+}
+
+/* Modals */
+.modal-card {
+  border-color: var(--sms-blue);
+  box-shadow: 0 0 40px rgba(0, 102, 204, 0.35);
+}
+
+.modal-title {
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(0, 102, 204, 0.8);
+}

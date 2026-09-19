@@ -754,3 +754,19 @@ body.player2-mode .toast-container {
   opacity: 0;
   transform: translateX(-50%) translateY(15px);
 }
+
+/* SEGA Master System Navigation Button */
+.btn-sega {
+  background: rgba(0, 102, 204, 0.2);
+  border-color: #0066cc;
+  color: #38bdf8;
+  font-weight: bold;
+}
+
+.btn-sega:hover {
+  background: #0066cc;
+  color: #ffffff;
+  border-color: #7dd3fc;
+  box-shadow: 0 0 14px rgba(0, 102, 204, 0.7);
+}
+
