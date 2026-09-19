@@ -30,21 +30,25 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', ensureAudio, { once: true });
   window.addEventListener('keydown', ensureAudio, { once: true });
 
-  // Aspect Ratio System (SuperWide 16:9, 4:3 CRT TV, 16:10 Wide Suave, 16:9 Total)
+  // Aspect Ratio System (16:9 Total Linear, 4:3 CRT TV, 16:10 Wide Suave, SuperWide)
   const aspectRatios = {
-    'superwide': 'SuperWide 🌟 (16:9 Inteligente)',
-    '4-3': '4:3 (TV CRT)',
+    '16-9': '16:9 Total 🌟 (Sem Bordas / Linear)',
+    '4-3': '4:3 (Original SMS / TV CRT)',
     '16-10': '16:10 (Wide Suave)',
-    '16-9': '16:9 (Total)',
-    'original': '4:3 (Original SMS)'
+    'superwide': 'SuperWide (Estiramento Não-Linear)'
   };
-  let currentRatio = localStorage.getItem('duplinha_sms_ratio') || 'superwide';
+  let savedRatio = localStorage.getItem('duplinha_sms_ratio');
+  if (!savedRatio || savedRatio === 'superwide') {
+    savedRatio = '16-9';
+    localStorage.setItem('duplinha_sms_ratio', '16-9');
+  }
+  let currentRatio = savedRatio;
 
   function updateAspectRatioUI(ratio, shouldBroadcast = true) {
     currentRatio = ratio;
     localStorage.setItem('duplinha_sms_ratio', ratio);
     const label = document.getElementById('aspectRatioLabel');
-    if (label) label.textContent = aspectRatios[ratio] || 'SuperWide 🌟 (16:9 Inteligente)';
+    if (label) label.textContent = aspectRatios[ratio] || '16:9 Total 🌟 (Sem Bordas / Linear)';
     document.body.classList.remove('ratio-superwide', 'ratio-4-3', 'ratio-16-10', 'ratio-16-9', 'ratio-original');
     document.body.classList.add(`ratio-${ratio}`);
     if (typeof emulator !== 'undefined' && emulator) {
@@ -255,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(controlsModal);
   });
 
-  const aspectOrder = ['superwide', '4-3', '16-10', '16-9', 'original'];
+  const aspectOrder = ['16-9', '4-3', '16-10', 'superwide'];
   document.getElementById('btnAspectRatio').addEventListener('click', () => {
     const nextIdx = (aspectOrder.indexOf(currentRatio) + 1) % aspectOrder.length;
     updateAspectRatioUI(aspectOrder[nextIdx], true);

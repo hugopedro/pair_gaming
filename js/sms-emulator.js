@@ -15,9 +15,11 @@ class SmsEmulator {
     this.canvas = canvasElement;
     this.ctx = this.canvas.getContext('2d', { alpha: false });
 
-    // Active aspect ratio mode: 'superwide' | '4-3' | '16-10' | '16-9' | 'original'
-    this.aspectRatioMode = localStorage.getItem('duplinha_sms_ratio') || 'superwide';
-    this.cropOverscan = localStorage.getItem('duplinha_sms_crop_overscan') !== 'false';
+    // Active aspect ratio mode: '16-9' | '4-3' | '16-10' | 'superwide'
+    let savedRatio = localStorage.getItem('duplinha_sms_ratio');
+    if (!savedRatio || savedRatio === 'superwide') savedRatio = '16-9';
+    this.aspectRatioMode = savedRatio;
+    this.cropOverscan = localStorage.getItem('duplinha_sms_crop_overscan') === 'true'; // Default FALSE for SMS so top HUD is never cut
 
     // xBRZ 6x High-Performance Scaler (256x192 -> 1536x1152)
     this.scaler = null;

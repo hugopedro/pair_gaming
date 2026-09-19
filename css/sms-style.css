@@ -103,3 +103,36 @@ body.player2-mode .screen-cabinet {
   color: #38bdf8;
   text-shadow: 0 0 8px rgba(0, 102, 204, 0.8);
 }
+
+/* Ensure #smsCanvas and #remoteVideo fill the cabinet perfectly with zero black borders */
+#smsCanvas, #remoteVideo {
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: auto;
+  object-fit: fill;
+  background: #000;
+  border: none;
+  outline: none;
+}
+
+/* Master System Aspect Ratio Rules */
+body.ratio-16-9 .screen-cabinet,
+body.ratio-16-9 #remoteVideo {
+  aspect-ratio: 16 / 9 !important;
+}
+
+body.ratio-4-3 .screen-cabinet,
+body.ratio-4-3 #remoteVideo {
+  aspect-ratio: 4 / 3 !important;
+}
+
+body.ratio-16-10 .screen-cabinet,
+body.ratio-16-10 #remoteVideo {
+  aspect-ratio: 16 / 10 !important;
+}
+
+body.ratio-superwide .screen-cabinet,
+body.ratio-superwide #remoteVideo {
+  aspect-ratio: 16 / 9 !important;
+}
