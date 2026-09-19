@@ -302,6 +302,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Overscan Crop Button Listener
+  const btnCrop = document.getElementById('btnCrop');
+  const cropLabel = document.getElementById('cropLabel');
+  const updateCropUI = (isCropped) => {
+    if (cropLabel) cropLabel.textContent = isCropped ? 'Bordas: Cortadas ✨' : 'Bordas: Originais ⬛';
+  };
+  updateCropUI(emulator.cropOverscan);
+  if (btnCrop) {
+    btnCrop.addEventListener('click', () => {
+      const isCropped = emulator.toggleCropOverscan();
+      updateCropUI(isCropped);
+      showToast(isCropped ? '✂️ Bordas Pretas Cortadas (Tela Cheia 100%)' : '⬛ Bordas Pretas Originais Ativadas');
+    });
+  }
+
   document.getElementById('btnFullscreen').addEventListener('click', () => {
     const cabinet = document.querySelector('.screen-cabinet');
     if (!document.fullscreenElement) {

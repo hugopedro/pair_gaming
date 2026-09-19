@@ -45,6 +45,7 @@ class NesEmulator {
     }
 
     // Precompute SuperWide non-linear stretch strip table
+    this.cropOverscan = localStorage.getItem('duplinha_crop_overscan') !== 'false'; // Default: true
     this._initSuperWideTable();
 
     // Set canvas dimensions according to aspect ratio
@@ -96,6 +97,7 @@ class NesEmulator {
       this.canvas.width = targetW;
       this.canvas.height = 480;
     }
+    this._initSuperWideTable();
   }
 
   setAspectRatio(ratio) {
@@ -103,10 +105,20 @@ class NesEmulator {
     this._updateCanvasSize();
   }
 
+  toggleCropOverscan() {
+    this.cropOverscan = !this.cropOverscan;
+    localStorage.setItem('duplinha_crop_overscan', this.cropOverscan ? 'true' : 'false');
+    this._initSuperWideTable();
+    return this.cropOverscan;
+  }
+
   _initSuperWideTable() {
     const N = 32;
-    const srcW = 512;
-    const dstW = 854;
+    const srcX0 = this.cropOverscan ? 16 : 0;
+    const srcY0 = this.cropOverscan ? 16 : 0;
+    const srcW = this.cropOverscan ? 480 : 512;
+    const srcH = this.cropOverscan ? 448 : 480;
+    const dstW = this.canvas.width;
     const a = 0.75; // 0.75 preserves exact 4:3 scale at center
     this.superWideTable = [];
 
@@ -119,12 +131,12 @@ class NesEmulator {
       const d0 = (a * s0 + (1 - a) * Math.pow(s0, 3) + 1) / 2;
       const d1 = (a * s1 + (1 - a) * Math.pow(s1, 3) + 1) / 2;
 
-      const sx = i * (srcW / N);
+      const sx = srcX0 + i * (srcW / N);
       const sw = srcW / N;
       const dx = d0 * dstW;
       const dw = (d1 * dstW) - dx + 0.6; // Overlap to prevent seams
 
-      this.superWideTable.push({ sx, sw, dx, dw });
+      this.superWideTable.push({ sx, sy: srcY0, sw, sh: srcH, dx, dw });
     }
   }
 
@@ -133,9 +145,10 @@ class NesEmulator {
     this.ctx.imageSmoothingQuality = 'high';
     const table = this.superWideTable;
     const len = table.length;
+    const h = this.canvas.height;
     for (let i = 0; i < len; i++) {
       const s = table[i];
-      this.ctx.drawImage(this.scaleCanvas, s.sx, 0, s.sw, 480, s.dx, 0, s.dw, 480);
+      this.ctx.drawImage(this.scaleCanvas, s.sx, s.sy, s.sw, s.sh, s.dx, 0, s.dw, h);
     }
   }
 
@@ -167,7 +180,11 @@ class NesEmulator {
         } else {
           this.ctx.imageSmoothingEnabled = (this.filterMode === 'smooth');
           this.ctx.imageSmoothingQuality = 'high';
-          this.ctx.drawImage(this.scaleCanvas, 0, 0, this.canvas.width, this.canvas.height);
+          const sx = this.cropOverscan ? 16 : 0;
+          const sy = this.cropOverscan ? 16 : 0;
+          const sw = this.cropOverscan ? 480 : 512;
+          const sh = this.cropOverscan ? 448 : 480;
+          this.ctx.drawImage(this.scaleCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
         }
       },
       onAudioSample: (left, right) => {

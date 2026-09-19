@@ -669,6 +669,37 @@ body.ratio-original #remoteVideo {
   .btn { padding: 7px 9px; }
 }
 
+/* Fullscreen Native Clean Edge-to-Edge */
+:fullscreen,
+:-webkit-full-screen {
+  background: #000 !important;
+}
+
+.screen-cabinet:fullscreen,
+.screen-cabinet:-webkit-full-screen,
+:fullscreen .screen-cabinet,
+:-webkit-full-screen .screen-cabinet {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #000 !important;
+}
+
+:fullscreen .main-viewport,
+:-webkit-full-screen .main-viewport {
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: #000 !important;
+}
+
 /* Player 2 / Client Clean Fullscreen View */
 body.player2-mode {
   background: #000;
