@@ -166,6 +166,27 @@ html, body {
   color: #fff;
 }
 
+.btn-swap-p1p2 {
+  background: rgba(255, 0, 127, 0.15);
+  border: 1px solid rgba(255, 0, 127, 0.5);
+  color: #ff99cc;
+  font-weight: 700;
+}
+
+.btn-swap-p1p2:hover {
+  background: rgba(255, 0, 127, 0.28);
+  border-color: var(--neon-pink);
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 0, 127, 0.5);
+}
+
+.btn-swap-p1p2.active {
+  background: linear-gradient(135deg, #ff007f, #b30059) !important;
+  border-color: #ff66b2 !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(255, 0, 127, 0.8) !important;
+}
+
 /* Main Display Area */
 .main-viewport {
   flex: 1;

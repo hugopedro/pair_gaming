@@ -6,6 +6,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('smsCanvas');
   const remoteVideo = document.getElementById('remoteVideo');
+  if (remoteVideo) remoteVideo.style.display = 'none';
+  localStorage.removeItem('duplinha_sms_crop_overscan');
   const dropZone = document.getElementById('dropZone');
   const romInput = document.getElementById('romInput');
   const statusDot = document.getElementById('statusDot');
@@ -32,10 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Aspect Ratio System (16:9 Total Linear, 4:3 CRT TV, 16:10 Wide Suave, SuperWide)
   const aspectRatios = {
-    '16-9': '16:9 Total 🌟 (Sem Bordas / Linear)',
-    '4-3': '4:3 (Original SMS / TV CRT)',
-    '16-10': '16:10 (Wide Suave)',
-    'superwide': 'SuperWide (Estiramento Não-Linear)'
+    '16-9': '16:9 Total 🌟',
+    '4-3': '4:3 CRT 📺',
+    '16-10': '16:10 Wide 🖥️',
+    'superwide': 'SuperWide 🌟'
   };
   let savedRatio = localStorage.getItem('duplinha_sms_ratio');
   if (!savedRatio || savedRatio === 'superwide') {
@@ -48,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentRatio = ratio;
     localStorage.setItem('duplinha_sms_ratio', ratio);
     const label = document.getElementById('aspectRatioLabel');
-    if (label) label.textContent = aspectRatios[ratio] || '16:9 Total 🌟 (Sem Bordas / Linear)';
+    if (label) label.textContent = aspectRatios[ratio] || '16:9 Total 🌟';
     document.body.classList.remove('ratio-superwide', 'ratio-4-3', 'ratio-16-10', 'ratio-16-9', 'ratio-original');
     document.body.classList.add(`ratio-${ratio}`);
     if (typeof emulator !== 'undefined' && emulator) {
@@ -123,11 +125,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let remoteControlsP1 = false;
+
   const multiplayer = new MultiplayerManager({
     onRemoteInput: (btn, isDown) => {
-      // Host receives Client input -> inject into Controller 2
-      if (isDown) emulator.buttonDown(2, btn);
-      else emulator.buttonUp(2, btn);
+      // Host receives Client input -> inject into Controller 1 if remoteControlsP1, otherwise Controller 2
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      if (isDown) emulator.buttonDown(targetPlayer, btn);
+      else emulator.buttonUp(targetPlayer, btn);
     },
     onRemoteStream: (stream) => {
       // Client receives Host's AV stream -> display on remoteVideo in fullscreen
@@ -189,8 +194,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         multiplayer.sendInput(buttonName, isDown);
       } else {
-        if (isDown) emulator.buttonDown(playerNum, buttonName);
-        else emulator.buttonUp(playerNum, buttonName);
+        const localTarget = remoteControlsP1 ? (playerNum === 1 ? 2 : 1) : playerNum;
+        if (isDown) emulator.buttonDown(localTarget, buttonName);
+        else emulator.buttonUp(localTarget, buttonName);
       }
     },
     (playerNum, gamepadId, isConnected) => {
@@ -297,11 +303,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.getElementById('btnSwapP1P2').addEventListener('click', () => {
-    const isSwapped = input.toggleSwapRoles();
-    showToast(`Controles Invertidos: Você agora é ${isSwapped ? 'Player 2' : 'Player 1'}`);
-    const swapBtn = document.getElementById('btnSwapP1P2');
-    if (swapBtn) swapBtn.textContent = isSwapped ? 'Inverter (P2)' : 'Inverter (P1)';
+  function updatePlayerRolesUI() {
+    const swapBtns = document.querySelectorAll('.btn-swap-p1p2');
+    const swapLabels = document.querySelectorAll('.swap-label, #swapLabel');
+    const swapIcons = document.querySelectorAll('.swap-icon, #swapIcon');
+    const p1Device = document.getElementById('p1Device');
+    const p2Device = document.getElementById('p2Device');
+
+    if (remoteControlsP1) {
+      swapBtns.forEach(btn => btn.classList.add('active'));
+      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P1 👑');
+      swapIcons.forEach(icn => icn.textContent = '👑');
+      if (p1Device) p1Device.textContent = '👩 Namorada (P1)';
+      if (p2Device) p2Device.textContent = '🎮 Você (Host / P2)';
+    } else {
+      swapBtns.forEach(btn => btn.classList.remove('active'));
+      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P2 🎮');
+      swapIcons.forEach(icn => icn.textContent = '🎮');
+      if (p1Device) p1Device.textContent = '🎮 Você (Host / P1)';
+      if (p2Device) p2Device.textContent = '👩 Namorada (P2)';
+    }
+  }
+
+  document.querySelectorAll('.btn-swap-p1p2').forEach(btn => {
+    btn.addEventListener('click', () => {
+      remoteControlsP1 = !remoteControlsP1;
+      updatePlayerRolesUI();
+      showToast(remoteControlsP1 
+        ? '👑 Namorada agora controla o Player 1! (Você comanda o P2)' 
+        : '🎮 Modo Normal: Você comanda o Player 1 e ela o Player 2');
+    });
   });
 
   document.getElementById('btnTouchToggle').addEventListener('click', () => {

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/sms-style.css?v=2">
+  <link rel="stylesheet" href="css/sms-style.css?v=3">
 </head>
 <body>
 
@@ -49,6 +49,9 @@
       <button class="btn btn-sega-primary" id="btnMultiplayer" title="Convidar amiga via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
+      <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
+      </button>
       <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
         <span>📐</span> <span id="aspectRatioLabel">16:9 Total 🌟</span>
       </button>
@@ -65,10 +68,10 @@
   <main class="main-viewport">
     <div class="screen-cabinet">
       <!-- Host / Local Master System Canvas -->
-      <canvas id="smsCanvas" width="256" height="192"></canvas>
+      <canvas id="smsCanvas" width="1280" height="720"></canvas>
 
       <!-- Client P2P Live Stream Video -->
-      <video id="remoteVideo" autoplay playsinline></video>
+      <video id="remoteVideo" autoplay playsinline style="display: none;"></video>
 
       <!-- Drag and Drop Overlay -->
       <div class="drop-zone" id="dropZone">
@@ -115,8 +118,8 @@
     </div>
 
     <div class="bottom-controls">
-      <button class="btn" id="btnSwapP1P2" title="Alternar se o seu controle comanda o Player 1 ou Player 2">
-        <span>⇄</span> Inverter (P1)
+      <button class="btn btn-swap-p1p2" id="btnSwapP1P2" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
       <button class="btn" id="btnPause" title="Pausar emulação">
         <span>⏸️</span> Pausar
@@ -257,11 +260,11 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="js/sms.min.js?v=2"></script>
-  <script src="js/xbrz.js?v=2"></script>
-  <script src="js/sms-emulator.js?v=2"></script>
-  <script src="js/input.js?v=2"></script>
-  <script src="js/multiplayer.js?v=2"></script>
-  <script src="js/sms-app.js?v=2"></script>
+  <script src="js/sms.min.js?v=5"></script>
+  <script src="js/xbrz.js?v=5"></script>
+  <script src="js/sms-emulator.js?v=5"></script>
+  <script src="js/input.js?v=5"></script>
+  <script src="js/multiplayer.js?v=5"></script>
+  <script src="js/sms-app.js?v=5"></script>
 </body>
 </html>

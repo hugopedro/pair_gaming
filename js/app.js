@@ -121,11 +121,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  let remoteControlsP1 = false;
+
   const multiplayer = new MultiplayerManager({
     onRemoteInput: (btn, isDown) => {
-      // Host receives Client input -> inject into Controller 2
-      if (isDown) emulator.buttonDown(2, btn);
-      else emulator.buttonUp(2, btn);
+      // Host receives Client input -> inject into Controller 1 if remoteControlsP1, otherwise Controller 2
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      if (isDown) emulator.buttonDown(targetPlayer, btn);
+      else emulator.buttonUp(targetPlayer, btn);
     },
     onRemoteStream: (stream) => {
       // Client receives Host's AV stream -> display on remoteVideo in fullscreen
@@ -185,8 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         multiplayer.sendInput(buttonName, isDown);
       } else {
-        if (isDown) emulator.buttonDown(playerNum, buttonName);
-        else emulator.buttonUp(playerNum, buttonName);
+        const localTarget = remoteControlsP1 ? (playerNum === 1 ? 2 : 1) : playerNum;
+        if (isDown) emulator.buttonDown(localTarget, buttonName);
+        else emulator.buttonUp(localTarget, buttonName);
       }
     },
     (playerNum, gamepadId, isConnected) => {
@@ -307,6 +311,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Video Filter Button Listener (xBRZ 6x vs Pixel Art Nítido)
+  const filterLabels = {
+    'xbrz': 'Filtro: xBRZ 6x ✨',
+    'crisp': 'Filtro: Pixel Art 👾'
+  };
+  const btnFilter = document.getElementById('btnFilter');
+  const filterLabel = document.getElementById('filterLabel');
+  const updateFilterUI = (filter) => {
+    if (filterLabel) filterLabel.textContent = filterLabels[filter] || 'Filtro: xBRZ 6x ✨';
+  };
+  updateFilterUI(emulator.videoFilter);
+  if (btnFilter) {
+    btnFilter.addEventListener('click', () => {
+      const nextFilter = emulator.toggleVideoFilter();
+      updateFilterUI(nextFilter);
+      showToast(nextFilter === 'crisp' ? '👾 Modo Pixel Art Nítido (Zero Flickering / 60 FPS)' : '✨ Modo xBRZ 6x HD Ativado');
+    });
+  }
+
   document.getElementById('btnFullscreen').addEventListener('click', () => {
     const cabinet = document.querySelector('.screen-cabinet');
     if (!document.fullscreenElement) {
@@ -336,11 +359,36 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(loaded ? '📂 Estado Carregado!' : 'Nenhum estado salvo encontrado.');
   });
 
-  document.getElementById('btnSwapP1P2').addEventListener('click', () => {
-    const isSwapped = input.toggleSwapRoles();
-    showToast(`Controles Invertidos: Você agora é ${isSwapped ? 'Player 2' : 'Player 1'}`);
-    const swapBtn = document.getElementById('btnSwapP1P2');
-    if (swapBtn) swapBtn.textContent = isSwapped ? 'Inverter (P2)' : 'Inverter (P1)';
+  function updatePlayerRolesUI() {
+    const swapBtns = document.querySelectorAll('.btn-swap-p1p2');
+    const swapLabels = document.querySelectorAll('.swap-label, #swapLabel');
+    const swapIcons = document.querySelectorAll('.swap-icon, #swapIcon');
+    const p1Device = document.getElementById('p1Device');
+    const p2Device = document.getElementById('p2Device');
+
+    if (remoteControlsP1) {
+      swapBtns.forEach(btn => btn.classList.add('active'));
+      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P1 👑');
+      swapIcons.forEach(icn => icn.textContent = '👑');
+      if (p1Device) p1Device.textContent = '👩 Namorada (P1)';
+      if (p2Device) p2Device.textContent = '🎮 Você (Host / P2)';
+    } else {
+      swapBtns.forEach(btn => btn.classList.remove('active'));
+      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P2 🎮');
+      swapIcons.forEach(icn => icn.textContent = '🎮');
+      if (p1Device) p1Device.textContent = '🎮 Você (Host / P1)';
+      if (p2Device) p2Device.textContent = '👩 Namorada (P2)';
+    }
+  }
+
+  document.querySelectorAll('.btn-swap-p1p2').forEach(btn => {
+    btn.addEventListener('click', () => {
+      remoteControlsP1 = !remoteControlsP1;
+      updatePlayerRolesUI();
+      showToast(remoteControlsP1 
+        ? '👑 Namorada agora controla o Player 1! (Você comanda o P2)' 
+        : '🎮 Modo Normal: Você comanda o Player 1 e ela o Player 2');
+    });
   });
 
   document.getElementById('btnTouchToggle').addEventListener('click', () => {

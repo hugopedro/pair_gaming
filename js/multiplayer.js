@@ -137,6 +137,7 @@ class MultiplayerManager {
     this.peer.on('call', (incomingCall) => {
       console.log('Recebendo transmissão do Host...');
       this.call = incomingCall;
+      this._optimizePeerConnection(incomingCall.peerConnection);
       incomingCall.answer(); // Answer without sending return video
 
       incomingCall.on('stream', (remoteStream) => {
@@ -234,12 +235,35 @@ class MultiplayerManager {
   }
 
   /**
-   * Optimizes the WebRTC video stream for maximum crispness (maintain-resolution)
-   * while capping bitrate to 3.0 Mbps to remain smooth and stable even on modest connections.
+   * Optimizes the WebRTC video stream for minimal latency and bufferbloat immunity:
+   *  - Prioritizes GPU-accelerated H.264 codec (NVENC/AMD/Intel QuickSync: ~2ms latency)
+   *  - Caps bitrate to 1.8 Mbps (prevents Wi-Fi packet queuing and 293ms ping spikes)
+   *  - Uses 'balanced' degradation preference to protect framerate & input response
    */
   _optimizePeerConnection(pc) {
     if (!pc) return;
 
+    // 1. Prioritize H.264 hardware-accelerated codec
+    try {
+      if ('RTCRtpSender' in window && 'getCapabilities' in RTCRtpSender) {
+        const capabilities = RTCRtpSender.getCapabilities('video');
+        if (capabilities && capabilities.codecs) {
+          const h264 = capabilities.codecs.filter(c => c.mimeType.toLowerCase() === 'video/h264');
+          const others = capabilities.codecs.filter(c => c.mimeType.toLowerCase() !== 'video/h264');
+          const preferred = [...h264, ...others];
+          const transceivers = pc.getTransceivers ? pc.getTransceivers() : [];
+          for (const t of transceivers) {
+            if (t.setCodecPreferences) {
+              t.setCodecPreferences(preferred);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Prioridade H.264 WebRTC:', err);
+    }
+
+    // 2. Configure bitrate and degradation parameters
     const applyParameters = () => {
       try {
         const senders = pc.getSenders ? pc.getSenders() : [];
@@ -253,19 +277,19 @@ class MultiplayerManager {
             }
 
             for (const encoding of params.encodings) {
-              // 3.0 Mbps cap: pristine 60 FPS xBRZ quality without overloading modest internet connections
-              encoding.maxBitrate = 3000000;
+              // 1.8 Mbps cap: pristine 60 FPS 720p 2D graphics without router bufferbloat
+              encoding.maxBitrate = 1800000;
               encoding.networkPriority = 'high';
               encoding.maxFramerate = 60;
             }
 
-            // Strictly maintain resolution so HUD and pixel-art contours never get blurry
+            // 'balanced' preserves framerate & latency when Wi-Fi fluctuates
             if ('degradationPreference' in params) {
-              params.degradationPreference = 'maintain-resolution';
+              params.degradationPreference = 'balanced';
             }
 
             sender.setParameters(params).then(() => {
-              console.log('⚡ WebRTC otimizado: 3.0 Mbps max, 60 FPS, maintain-resolution');
+              console.log('⚡ WebRTC otimizado: 1.8 Mbps max, 60 FPS, balanced, H.264');
             }).catch(() => {
               // Can fail silently during active renegotiation
             });
@@ -278,8 +302,8 @@ class MultiplayerManager {
 
     // Apply immediately and retry after ICE connection stabilizes
     applyParameters();
-    setTimeout(applyParameters, 800);
-    setTimeout(applyParameters, 2500);
+    setTimeout(applyParameters, 500);
+    setTimeout(applyParameters, 2000);
 
     if (pc.addEventListener) {
       pc.addEventListener('connectionstatechange', () => {

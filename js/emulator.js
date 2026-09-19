@@ -23,6 +23,16 @@ class NesEmulator {
     this.xbrzCtx = this.xbrzCanvas.getContext('2d', { alpha: false });
     this.xbrzImageData = this.xbrzCtx.createImageData(1536, 1440);
 
+    // Raw 256x240 canvas for crisp Pixel Art mode (zero xBRZ overhead/flicker)
+    this.rawCanvas = document.createElement('canvas');
+    this.rawCanvas.width = 256;
+    this.rawCanvas.height = 240;
+    this.rawCtx = this.rawCanvas.getContext('2d', { alpha: false });
+    this.rawImageData = this.rawCtx.createImageData(256, 240);
+
+    // Video Filter: 'xbrz' | 'crisp'
+    this.videoFilter = localStorage.getItem('duplinha_filter') || 'xbrz';
+
     // Raw 256x240 buffer for JSNES
     this.buf = new ArrayBuffer(256 * 240 * 4);
     this.buf8 = new Uint8ClampedArray(this.buf);
@@ -147,22 +157,35 @@ class NesEmulator {
           this.buf32[i] = 0xFF000000 | frameBuffer[i];
         }
 
-        // 1. Scale with xBRZ 6x (256x240 -> 1536x1440) via WebAssembly
-        const scaled = this.scaler.scale(this.buf8);
-        this.xbrzImageData.data.set(scaled);
-        this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
+        if (this.videoFilter === 'crisp') {
+          // Pixel Art mode: 100% crisp retro pixels, zero xBRZ morphing / zero flickering
+          this.rawImageData.data.set(this.buf8);
+          this.rawCtx.putImageData(this.rawImageData, 0, 0);
 
-        // 2. Render to final canvas (SuperWide non-linear or standard aspect ratio)
-        if (this.aspectRatioMode === 'superwide') {
-          this._drawSuperWide();
+          this.ctx.imageSmoothingEnabled = false;
+          const sx = this.cropOverscan ? 8 : 0;
+          const sy = this.cropOverscan ? 8 : 0;
+          const sw = this.cropOverscan ? 240 : 256;
+          const sh = this.cropOverscan ? 224 : 240;
+          this.ctx.drawImage(this.rawCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
         } else {
-          this.ctx.imageSmoothingEnabled = true;
-          this.ctx.imageSmoothingQuality = 'high';
-          const sx = this.cropOverscan ? 48 : 0;
-          const sy = this.cropOverscan ? 48 : 0;
-          const sw = this.cropOverscan ? 1440 : 1536;
-          const sh = this.cropOverscan ? 1344 : 1440;
-          this.ctx.drawImage(this.xbrzCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
+          // 1. Scale with xBRZ 6x (256x240 -> 1536x1440) via WebAssembly
+          const scaled = this.scaler.scale(this.buf8);
+          this.xbrzImageData.data.set(scaled);
+          this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
+
+          // 2. Render to final canvas (SuperWide non-linear or standard aspect ratio)
+          if (this.aspectRatioMode === 'superwide') {
+            this._drawSuperWide();
+          } else {
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.imageSmoothingQuality = 'high';
+            const sx = this.cropOverscan ? 48 : 0;
+            const sy = this.cropOverscan ? 48 : 0;
+            const sw = this.cropOverscan ? 1440 : 1536;
+            const sh = this.cropOverscan ? 1344 : 1440;
+            this.ctx.drawImage(this.xbrzCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
+          }
         }
       },
       onAudioSample: (left, right) => {
@@ -272,21 +295,33 @@ class NesEmulator {
     return this.isPaused;
   }
 
+  setVideoFilter(filter) {
+    this.videoFilter = filter;
+    localStorage.setItem('duplinha_filter', filter);
+  }
+
+  toggleVideoFilter() {
+    this.videoFilter = this.videoFilter === 'xbrz' ? 'crisp' : 'xbrz';
+    localStorage.setItem('duplinha_filter', this.videoFilter);
+    return this.videoFilter;
+  }
+
   _loop() {
     if (!this.isRunning || this.isPaused) return;
 
     const now = performance.now();
     const elapsed = now - this.lastFrameTime;
 
-    // Target 60 FPS (~16.6ms per frame)
-    if (elapsed >= 15.5) {
+    // Target 60 FPS (~16.66ms per frame)
+    // 12.5ms threshold prevents dropping frames on 60Hz displays due to scheduler jitter
+    if (elapsed >= 12.5) {
       try {
         this.nes.frame();
         this.frameCount++;
       } catch (err) {
         console.error('Erro na execução do frame NES:', err);
       }
-      this.lastFrameTime = now;
+      this.lastFrameTime = now - (elapsed % 16.666);
 
       // Update FPS counter every 1 second
       if (now - this.fpsTimer >= 1000) {

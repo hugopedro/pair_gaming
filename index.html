@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 
@@ -52,11 +52,17 @@
       <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
+      <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
+      </button>
       <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
         <span>📐</span> <span id="aspectRatioLabel">SuperWide 🌟</span>
       </button>
       <button class="btn" id="btnCrop" title="Cortar bordas pretas de overscan do NES para preencher toda a tela">
         <span>✂️</span> <span id="cropLabel">Bordas: Cortadas ✨</span>
+      </button>
+      <button class="btn" id="btnFilter" title="Alternar filtro de vídeo (xBRZ 6x Suave ou Pixel Art Nítido)">
+        <span>✨</span> <span id="filterLabel">Filtro: xBRZ 6x ✨</span>
       </button>
       <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360">
         <span>🎮</span> <span>Controles (Xbox 360)</span>
@@ -122,8 +128,8 @@
     </div>
 
     <div class="bottom-controls">
-      <button class="btn" id="btnSwapP1P2" title="Alternar se o seu controle comanda o Player 1 ou Player 2">
-        <span>⇄</span> Inverter (P1)
+      <button class="btn btn-swap-p1p2" id="btnSwapP1P2" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
       <button class="btn" id="btnPause" title="Pausar jogo">
         <span>⏸️</span> Pausar
@@ -270,10 +276,10 @@
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
   <script src="jsnes.min.js"></script>
-  <script src="js/xbrz.js"></script>
-  <script src="js/emulator.js"></script>
-  <script src="js/input.js"></script>
-  <script src="js/multiplayer.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/xbrz.js?v=5"></script>
+  <script src="js/emulator.js?v=5"></script>
+  <script src="js/input.js?v=5"></script>
+  <script src="js/multiplayer.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

@@ -76,6 +76,27 @@ body {
   box-shadow: 0 0 14px var(--sms-red-glow);
 }
 
+.btn-swap-p1p2 {
+  background: rgba(230, 0, 18, 0.15);
+  border: 1px solid rgba(230, 0, 18, 0.5);
+  color: #ff858f;
+  font-weight: 700;
+}
+
+.btn-swap-p1p2:hover {
+  background: rgba(230, 0, 18, 0.28);
+  border-color: var(--sms-red);
+  color: #fff;
+  box-shadow: 0 0 14px var(--sms-red-glow);
+}
+
+.btn-swap-p1p2.active {
+  background: linear-gradient(135deg, #e60012, #99000c) !important;
+  border-color: #ff4d5a !important;
+  color: #fff !important;
+  box-shadow: 0 0 16px rgba(230, 0, 18, 0.8) !important;
+}
+
 /* Cabinet Border */
 .screen-cabinet {
   border: 3px solid #1a2952;
@@ -104,8 +125,8 @@ body.player2-mode .screen-cabinet {
   text-shadow: 0 0 8px rgba(0, 102, 204, 0.8);
 }
 
-/* Ensure #smsCanvas and #remoteVideo fill the cabinet perfectly with zero black borders */
-#smsCanvas, #remoteVideo {
+/* Ensure #smsCanvas fills the cabinet perfectly with zero black borders */
+#smsCanvas {
   width: 100%;
   height: 100%;
   display: block;
@@ -114,6 +135,25 @@ body.player2-mode .screen-cabinet {
   background: #000;
   border: none;
   outline: none;
+}
+
+#remoteVideo {
+  width: 100%;
+  height: 100%;
+  display: none !important;
+  image-rendering: auto;
+  object-fit: fill;
+  background: #000;
+  border: none;
+  outline: none;
+}
+
+body.player2-mode #smsCanvas {
+  display: none !important;
+}
+
+body.player2-mode #remoteVideo {
+  display: block !important;
 }
 
 /* Master System Aspect Ratio Rules */

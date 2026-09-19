@@ -19,7 +19,7 @@ class SmsEmulator {
     let savedRatio = localStorage.getItem('duplinha_sms_ratio');
     if (!savedRatio || savedRatio === 'superwide') savedRatio = '16-9';
     this.aspectRatioMode = savedRatio;
-    this.cropOverscan = localStorage.getItem('duplinha_sms_crop_overscan') === 'true'; // Default FALSE for SMS so top HUD is never cut
+    this.cropOverscan = false; // Always false for Master System so HUD/score is never cut
 
     // xBRZ 6x High-Performance Scaler (256x192 -> 1536x1152)
     this.scaler = null;
