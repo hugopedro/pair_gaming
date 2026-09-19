@@ -208,6 +208,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function loadRomFromArrayBuffer(buffer, name) {
     ensureAudio();
     const bytes = new Uint8Array(buffer);
+
+    // Detect compressed archives disguised as ROMs
+    if (bytes.length >= 4) {
+      if (bytes[0] === 0x37 && bytes[1] === 0x7A && bytes[2] === 0xBC && bytes[3] === 0xAF) {
+        showToast(`⚠️ "${name}" está compactado em 7-Zip (.7z). Por favor, use a ROM descompactada (.nes)!`, 5000);
+        return;
+      }
+      if (bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+        showToast(`⚠️ "${name}" está compactado em ZIP (.zip). Extraia a ROM (.nes) antes de jogar!`, 5000);
+        return;
+      }
+      if (bytes[0] === 0x52 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21) {
+        showToast(`⚠️ "${name}" está compactado em RAR (.rar). Extraia a ROM (.nes) antes de jogar!`, 5000);
+        return;
+      }
+    }
+
     let binary = '';
     const len = bytes.byteLength;
     for (let i = 0; i < len; i += 8192) {

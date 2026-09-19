@@ -255,6 +255,23 @@ class SmsEmulator {
         }
       }
 
+      // Check for compressed archives
+      if (binaryString.length >= 4) {
+        const b0 = binaryString.charCodeAt(0) & 0xFF;
+        const b1 = binaryString.charCodeAt(1) & 0xFF;
+        const b2 = binaryString.charCodeAt(2) & 0xFF;
+        const b3 = binaryString.charCodeAt(3) & 0xFF;
+        if (b0 === 0x37 && b1 === 0x7A && b2 === 0xBC && b3 === 0xAF) {
+          throw new Error('Arquivo compactado em 7-Zip (.7z). Por favor, use a ROM descompactada (.sms)!');
+        }
+        if (b0 === 0x50 && b1 === 0x4B && b2 === 0x03 && b3 === 0x04) {
+          throw new Error('Arquivo compactado em ZIP (.zip). Por favor, extraia a ROM (.sms) primeiro!');
+        }
+        if (b0 === 0x52 && b1 === 0x61 && b2 === 0x72 && b3 === 0x21) {
+          throw new Error('Arquivo compactado em RAR (.rar). Por favor, extraia a ROM (.sms) primeiro!');
+        }
+      }
+
       // Strip 512-byte copier header if present
       if (binaryString.length % 16384 === 512) {
         binaryString = binaryString.substring(512);

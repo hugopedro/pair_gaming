@@ -211,16 +211,41 @@ document.addEventListener('DOMContentLoaded', () => {
   );
 
   // 4. ROM Loading Helper
-  function loadRomFile(file) {
+  async function loadRomFile(file) {
     ensureAudio();
     const cleanName = file.name.replace(/\.(sms|bin)$/i, '');
-    emulator.loadROM(file, cleanName).then(success => {
-      if (success) {
-        const romLabel = document.getElementById('currentRomLabel');
-        if (romLabel) romLabel.textContent = cleanName;
-        showToast(`🎮 ${cleanName} carregado com sucesso!`);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+
+      // Detect compressed archives disguised as ROMs
+      if (bytes.length >= 4) {
+        if (bytes[0] === 0x37 && bytes[1] === 0x7A && bytes[2] === 0xBC && bytes[3] === 0xAF) {
+          showToast(`⚠️ "${file.name}" é um arquivo 7-Zip (.7z). Por favor, use a ROM descompactada (.sms)!`, 6000);
+          return;
+        }
+        if (bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04) {
+          showToast(`⚠️ "${file.name}" está compactado em ZIP (.zip). Extraia a ROM (.sms) antes de jogar!`, 6000);
+          return;
+        }
+        if (bytes[0] === 0x52 && bytes[1] === 0x61 && bytes[2] === 0x72 && bytes[3] === 0x21) {
+          showToast(`⚠️ "${file.name}" está compactado em RAR (.rar). Extraia a ROM (.sms) antes de jogar!`, 6000);
+          return;
+        }
       }
-    });
+
+      emulator.loadROM(buffer, cleanName).then(success => {
+        if (success) {
+          const romLabel = document.getElementById('currentRomLabel');
+          if (romLabel) romLabel.textContent = cleanName;
+          showToast(`🎮 ${cleanName} carregado com sucesso!`);
+        }
+      });
+    } catch (e) {
+      console.error('Erro lendo arquivo:', e);
+      showToast('Erro ao ler arquivo da ROM.');
+    }
   }
 
   // File Picker
