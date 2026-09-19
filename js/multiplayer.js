@@ -21,6 +21,7 @@ class MultiplayerManager {
     this.onStatusChange = onStatusChange;   // (statusText, mode) => {}
     this.onPingUpdate = onPingUpdate;       // (pingMs) => {}
     this.onAspectRatioChange = null;        // (ratio) => {}
+    this.onCopilotChange = null;            // (active) => {}
     this.currentRatio = '4-3';
   }
 
@@ -174,6 +175,8 @@ class MultiplayerManager {
       if (data.type === 'ASPECT_RATIO') {
         this.currentRatio = data.ratio;
         if (this.onAspectRatioChange) this.onAspectRatioChange(data.ratio);
+      } else if (data.type === 'COPILOT_STATUS') {
+        if (this.onCopilotChange) this.onCopilotChange(data.active);
       } else if (data.type === 'PING') {
         this.conn.send({ type: 'PONG', time: data.time });
       } else if (data.type === 'PONG') {
@@ -198,6 +201,15 @@ class MultiplayerManager {
       this.conn.send({
         type: 'ASPECT_RATIO',
         ratio: ratio
+      });
+    }
+  }
+
+  sendCopilotStatus(active) {
+    if (this.isConnected && this.conn && this.conn.open) {
+      this.conn.send({
+        type: 'COPILOT_STATUS',
+        active: active
       });
     }
   }

@@ -73,6 +73,12 @@ class NesEmulator {
     this.frameCount = 0;
     this.fpsTimer = performance.now();
 
+    // Rewind Ring Buffer (stores snapshots every 30 frames = 0.5s for up to 15s)
+    this.rewindBuffer = [];
+    this.maxRewindStates = 30; // 30 states * 0.5s = 15 seconds
+    this.rewindIntervalFrames = 30;
+    this.isRewinding = false;
+
     // Callbacks
     this.onStatusChange = null;
     this.onFPSUpdate = null;
@@ -250,6 +256,7 @@ class NesEmulator {
     try {
       this.currentRomData = binaryString;
       this.currentRomName = romName;
+      this.rewindBuffer = [];
       this.nes.loadROM(binaryString);
       this.start();
       if (this.onStatusChange) this.onStatusChange(`ROM Carregada: ${romName}`);
@@ -263,6 +270,7 @@ class NesEmulator {
 
   reloadROM() {
     if (this.currentRomData) {
+      this.rewindBuffer = [];
       this.loadROM(this.currentRomData, this.currentRomName);
     }
   }
@@ -306,6 +314,43 @@ class NesEmulator {
     return this.videoFilter;
   }
 
+  _captureRewindState() {
+    if (!this.nes || !this.isRunning || this.isPaused || this.isRewinding) return;
+    try {
+      const state = this.nes.toJSON();
+      this.rewindBuffer.push(state);
+      if (this.rewindBuffer.length > this.maxRewindStates) {
+        this.rewindBuffer.shift();
+      }
+    } catch (err) {
+      // Ignore if state capture fails
+    }
+  }
+
+  rewind(seconds = 3) {
+    if (!this.nes || this.rewindBuffer.length === 0) return false;
+    const stepsToPop = Math.max(1, Math.round(seconds * 2));
+    for (let i = 0; i < stepsToPop; i++) {
+      if (this.rewindBuffer.length > 1) {
+        this.rewindBuffer.pop();
+      }
+    }
+    const targetState = this.rewindBuffer[this.rewindBuffer.length - 1];
+    if (targetState) {
+      this.isRewinding = true;
+      try {
+        this.nes.fromJSON(targetState);
+        this.isRewinding = false;
+        return true;
+      } catch (err) {
+        console.error('Erro no rewind:', err);
+        this.isRewinding = false;
+        return false;
+      }
+    }
+    return false;
+  }
+
   _loop() {
     if (!this.isRunning || this.isPaused) return;
 
@@ -318,6 +363,11 @@ class NesEmulator {
       try {
         this.nes.frame();
         this.frameCount++;
+
+        // Capture rewind snapshot every 30 frames (0.5s)
+        if (this.frameCount % this.rewindIntervalFrames === 0) {
+          this._captureRewindState();
+        }
       } catch (err) {
         console.error('Erro na execução do frame NES:', err);
       }

@@ -52,6 +52,12 @@
       <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
+      <button class="btn btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
+        <span>⏪</span> <span class="rewind-label">Rebobinar (3s)</span>
+      </button>
+      <button class="btn btn-copilot" id="btnCopilotTop" title="Assumir o controle do boneco dela temporariamente para passar fase (Atalho: C / R3 no Controle)">
+        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
+      </button>
       <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
         <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
@@ -81,6 +87,16 @@
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline></video>
+
+      <!-- Co-Pilot Active Banners -->
+      <div class="copilot-banner host" id="copilotHostBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>MODO CO-PILOT ATIVO:</strong> Você está no controle do boneco dela! [Pressione C ou clique para devolver]</span>
+      </div>
+      <div class="copilot-banner client" id="copilotClientBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>SEU AMIGO ASSUMIU O CONTROLE!</strong> Aguarde ele passar o obstáculo...</span>
+      </div>
 
       <!-- Drag and Drop Overlay -->
       <div class="drop-zone" id="dropZone">
@@ -128,6 +144,12 @@
     </div>
 
     <div class="bottom-controls">
+      <button class="btn btn-rewind" id="btnRewindBottom" title="Rebobinar jogo 3 segundos (Backspace ou R / L3 no Controle)">
+        <span>⏪</span> Rebobinar (3s)
+      </button>
+      <button class="btn btn-copilot" id="btnCopilotBottom" title="Passar o controle / Co-Pilot (C / R3 no Controle)">
+        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
+      </button>
       <button class="btn btn-swap-p1p2" id="btnSwapP1P2" title="Alternar quem comanda o Player 1 (Você ou Ela)">
         <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
       </button>
@@ -198,7 +220,7 @@
   <div class="modal-backdrop" id="controlsModal">
     <div class="modal-card" style="width: 640px;">
       <div class="modal-header">
-        <h2 class="modal-title">🎮 CONTROLE XBOX 360 (MAPEAMENTO)</h2>
+        <h2 class="modal-title">🎮 CONTROLE XBOX 360 & TECLADO (MAPEAMENTO)</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
@@ -209,56 +231,56 @@
         <table class="controls-table">
           <thead>
             <tr>
-              <th>BOTÃO NES</th>
-              <th>CONTROLE XBOX 360</th>
-              <th>AÇÃO NO JOGO (MARIO / CONTRA)</th>
+              <th>FUNÇÃO</th>
+              <th>XBOX 360</th>
+              <th>TECLADO</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>BOTÃO A</strong></td>
-              <td><span class="xbox-btn xbox-a">A</span> (Verde) ou <span class="xbox-btn xbox-b">B</span></td>
-              <td>Pular / Ação Primária</td>
+              <td><strong>PULAR / AÇÃO A</strong></td>
+              <td><span class="xbox-btn xbox-a">A</span> ou <span class="xbox-btn xbox-b">B</span></td>
+              <td><kbd>K</kbd> (P1) / <kbd>X</kbd> (P2)</td>
             </tr>
             <tr>
-              <td><strong>BOTÃO B</strong></td>
-              <td><span class="xbox-btn xbox-x">X</span> (Azul) ou <span class="xbox-btn xbox-y">Y</span></td>
-              <td>Correr / Atirar / Ação Secundária</td>
+              <td><strong>ATIRAR / CORRER B</strong></td>
+              <td><span class="xbox-btn xbox-x">X</span> ou <span class="xbox-btn xbox-y">Y</span></td>
+              <td><kbd>J</kbd> (P1) / <kbd>Z</kbd> (P2)</td>
+            </tr>
+            <tr>
+              <td><strong>REBOBINAR (3s) ⏪</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">L3</span> (Clicar Analógico Esq.)</td>
+              <td><kbd>Backspace</kbd> ou <kbd>R</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>PASSA O CONTROLE 🤝</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">R3</span> (Clicar Analógico Dir.)</td>
+              <td><kbd>C</kbd></td>
             </tr>
             <tr>
               <td><strong>SAVE STATE (P1)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">LB</span> (Botão Superior Esquerdo)</td>
-              <td>Salvar Estado / Progresso Instantâneo</td>
+              <td><span class="xbox-btn xbox-shoulder">LB</span> (Superior Esquerdo)</td>
+              <td>Botão na tela</td>
             </tr>
             <tr>
               <td><strong>LOAD STATE (P1)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">RB</span> (Botão Superior Direito)</td>
-              <td>Carregar Estado / Progresso Instantâneo</td>
+              <td><span class="xbox-btn xbox-shoulder">RB</span> (Superior Direito)</td>
+              <td>Botão na tela</td>
             </tr>
             <tr>
-              <td><strong>TURBO A</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">RT</span> (Gatilho Direito) [P2: RB ou RT]</td>
-              <td>Pulo Rápido / Disparo Turbo</td>
+              <td><strong>TURBO A / TURBO B</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">RT</span> / <span class="xbox-btn xbox-shoulder">LT</span></td>
+              <td><kbd>I</kbd> / <kbd>U</kbd></td>
             </tr>
             <tr>
-              <td><strong>TURBO B</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">LT</span> (Gatilho Esquerdo) [P2: LB ou LT]</td>
-              <td>Tiro Contínuo Automático (Machinegun)</td>
+              <td><strong>DIRECIONAIS</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esq.</strong></td>
+              <td><kbd>W,A,S,D</kbd> / Setas</td>
             </tr>
             <tr>
-              <td><strong>D-PAD (Direções)</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esquerdo</strong></td>
-              <td>Mover / Agachar / Mirar</td>
-            </tr>
-            <tr>
-              <td><strong>SELECT</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">BACK</span> (Botão Voltar)</td>
-              <td>Trocar armas / Selecionar modo</td>
-            </tr>
-            <tr>
-              <td><strong>START</strong></td>
-              <td><span class="xbox-btn xbox-shoulder">START</span> (Botão Iniciar)</td>
-              <td>Começar jogo / Pausar</td>
+              <td><strong>SELECT / START</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">BACK</span> / <span class="xbox-btn xbox-shoulder">START</span></td>
+              <td><kbd>Tab</kbd> / <kbd>Enter</kbd></td>
             </tr>
           </tbody>
         </table>

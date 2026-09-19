@@ -57,9 +57,23 @@ class InputManager {
 
   _initKeyboard() {
     window.addEventListener('keydown', (e) => {
-      // Prevent browser default on navigation keys during gameplay
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab'].includes(e.code)) {
+      // Prevent browser default on navigation and shortcut keys during gameplay
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace'].includes(e.code)) {
         e.preventDefault();
+      }
+
+      // Quick Shortcut Keys for Player 1: Backspace / KeyR = REWIND, KeyC = COPILOT
+      if (e.code === 'Backspace' || e.code === 'KeyR') {
+        if (!e.repeat && this.onButtonEvent) {
+          this.onButtonEvent(1, 'REWIND', true);
+        }
+        return;
+      }
+      if (e.code === 'KeyC') {
+        if (!e.repeat && this.onButtonEvent) {
+          this.onButtonEvent(1, 'COPILOT', true);
+        }
+        return;
       }
 
       // Check Player 1
@@ -193,10 +207,12 @@ class InputManager {
         BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
       };
 
-      // Player 1 dedicated quick save / load state triggers on shoulder buttons
+      // Player 1 dedicated quick save / load state / rewind / co-pilot triggers on controller
       if (playerNum === 1) {
         buttonsState.SAVE_STATE = isLbPressed;
         buttonsState.LOAD_STATE = isRbPressed;
+        buttonsState.REWIND = Boolean(gp.buttons[10]?.pressed);  // Left Stick Click (L3)
+        buttonsState.COPILOT = Boolean(gp.buttons[11]?.pressed); // Right Stick Click (R3)
       }
 
       for (const [btn, isDown] of Object.entries(buttonsState)) {
