@@ -209,27 +209,52 @@ html, body {
   display: none;
 }
 
-/* Scanlines overlay */
-.scanlines-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%,
-    rgba(0, 0, 0, 0.28) 50%
-  );
-  background-size: 100% 4px;
-  z-index: 10;
-  opacity: 0.85;
-  border-radius: 9px;
-  transition: opacity 0.2s ease;
+/* Xbox 360 Controller Badges */
+.xbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-family: var(--font-retro);
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-.scanlines-overlay.off {
-  display: none;
+.xbox-a {
+  background: #107c10;
+  border: 2px solid #28e628;
+}
+
+.xbox-b {
+  background: #d83b01;
+  border: 2px solid #ff5d24;
+}
+
+.xbox-x {
+  background: #0078d7;
+  border: 2px solid #289eff;
+}
+
+.xbox-y {
+  background: #ffb900;
+  border: 2px solid #ffd042;
+  color: #000;
+}
+
+.xbox-shoulder {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #252e46;
+  border: 1px solid #44537c;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 11px;
+  color: #fff;
 }
 
 /* Drag and drop overlay */

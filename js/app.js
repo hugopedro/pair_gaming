@@ -11,9 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const statusDot = document.getElementById('statusDot');
   const statusText = document.getElementById('statusText');
   const pingText = document.getElementById('pingText');
-  const scanlines = document.getElementById('scanlines');
   const toastContainer = document.getElementById('toastContainer');
-  const touchControls = document.getElementById('touchControls');
 
   // Modals
   const multiplayerModal = document.getElementById('multiplayerModal');
@@ -71,18 +69,26 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 3. Initialize Input System
-  const input = new InputManager((playerNum, buttonName, isDown) => {
-    ensureAudio();
-
-    if (multiplayer.mode === 'CLIENT') {
-      // Client forwards their inputs to Host
-      multiplayer.sendInput(buttonName, isDown);
-    } else {
-      // Host or Local Offline: apply to emulator
-      if (isDown) emulator.buttonDown(playerNum, buttonName);
-      else emulator.buttonUp(playerNum, buttonName);
+  const input = new InputManager(
+    (playerNum, buttonName, isDown) => {
+      ensureAudio();
+      if (multiplayer.mode === 'CLIENT') {
+        multiplayer.sendInput(buttonName, isDown);
+      } else {
+        if (isDown) emulator.buttonDown(playerNum, buttonName);
+        else emulator.buttonUp(playerNum, buttonName);
+      }
+    },
+    (playerNum, gamepadId, isConnected) => {
+      const label = isConnected ? '🎮 Xbox 360' : '⚠️ Desconectado';
+      const devElem = document.getElementById(playerNum === 1 ? 'p1Device' : 'p2Device');
+      if (devElem) devElem.textContent = label;
+      showToast(isConnected
+        ? `🎮 Controle Xbox 360 conectado (P${playerNum}): ${gamepadId}`
+        : `⚠️ Controle P${playerNum} desconectado!`
+      );
     }
-  });
+  );
 
   // 4. ROM Loading Helper
   function loadRomFromArrayBuffer(buffer, name) {
@@ -164,12 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(controlsModal);
   });
 
-  document.getElementById('btnScanlines').addEventListener('click', () => {
-    scanlines.classList.toggle('off');
-    const isOn = !scanlines.classList.contains('off');
-    showToast(`CRT Scanlines: ${isOn ? 'ATIVADO' : 'DESATIVADO'}`);
-  });
-
   document.getElementById('btnFullscreen').addEventListener('click', () => {
     const cabinet = document.querySelector('.screen-cabinet');
     if (!document.fullscreenElement) {
@@ -207,7 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnTouchToggle').addEventListener('click', () => {
-    touchControls.classList.toggle('active');
+    const touchControls = document.getElementById('touchControls');
+    if (touchControls) touchControls.classList.toggle('active');
   });
 
   // Volume slider

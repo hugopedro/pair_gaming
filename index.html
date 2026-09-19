@@ -44,11 +44,8 @@
       <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
-      <button class="btn" id="btnControls" title="Ver e ajustar mapeamento de botões">
-        <span>⚙️</span> <span>Controles</span>
-      </button>
-      <button class="btn" id="btnScanlines" title="Alternar filtro CRT retrô">
-        <span>📺</span> <span>Scanlines</span>
+      <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360">
+        <span>🎮</span> <span>Controles (Xbox 360)</span>
       </button>
       <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
         <span>⛶</span>
@@ -64,9 +61,6 @@
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline></video>
-
-      <!-- Retro CRT Scanlines Overlay -->
-      <div class="scanlines-overlay" id="scanlines"></div>
 
       <!-- Drag and Drop Overlay -->
       <div class="drop-zone" id="dropZone">
@@ -101,11 +95,11 @@
     <div class="players-indicator">
       <div class="player-tag p1">
         <span>P1 (Host):</span>
-        <span class="device" id="p1Device">WASD + J/K</span>
+        <span class="device" id="p1Device">🎮 Xbox 360</span>
       </div>
       <div class="player-tag p2">
         <span>P2:</span>
-        <span class="device" id="p2Device">Setas + Z/X</span>
+        <span class="device" id="p2Device">🎮 Xbox 360</span>
       </div>
       <div class="player-tag" style="border-color: #475569;">
         <span>ROM:</span>
@@ -180,69 +174,67 @@
     </div>
   </div>
 
-  <!-- Modal: Controles e Teclas -->
+  <!-- Modal: Controles Xbox 360 -->
   <div class="modal-backdrop" id="controlsModal">
-    <div class="modal-card" style="width: 620px;">
+    <div class="modal-card" style="width: 640px;">
       <div class="modal-header">
-        <h2 class="modal-title">⚙️ MAPEAMENTO DE CONTROLES</h2>
+        <h2 class="modal-title">🎮 CONTROLE XBOX 360 (MAPEAMENTO)</h2>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <p style="color: var(--text-muted); font-size: 12px;">
-          Suporte automático para <strong>Teclado</strong> e <strong>Gamepads USB / Bluetooth</strong> (Xbox, PS4/PS5, 8BitDo, SNES USB).
+          Plugue seu joystick de <strong>Xbox 360</strong> (ou qualquer controle compatível com XInput / USB / Bluetooth). Ele é reconhecido automaticamente sem precisar configurar nada!
         </p>
 
         <table class="controls-table">
           <thead>
             <tr>
               <th>BOTÃO NES</th>
-              <th>PLAYER 1 (HOST / LOCAL)</th>
-              <th>PLAYER 2 (CLIENT / LOCAL)</th>
-              <th>GAMEPAD</th>
+              <th>CONTROLE XBOX 360</th>
+              <th>AÇÃO NO JOGO (MARIO / CONTRA)</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><strong>D-PAD (Direcionais)</strong></td>
-              <td><span class="kbd-key">W</span> <span class="kbd-key">A</span> <span class="kbd-key">S</span> <span class="kbd-key">D</span></td>
-              <td><span class="kbd-key">↑</span> <span class="kbd-key">←</span> <span class="kbd-key">↓</span> <span class="kbd-key">→</span></td>
-              <td>D-Pad / Analógico Esquerdo</td>
+              <td><strong>BOTÃO A</strong></td>
+              <td><span class="xbox-btn xbox-a">A</span> (Verde) ou <span class="xbox-btn xbox-b">B</span></td>
+              <td>Pular / Ação Primária</td>
             </tr>
             <tr>
               <td><strong>BOTÃO B</strong></td>
-              <td><span class="kbd-key">J</span></td>
-              <td><span class="kbd-key">Z</span> ou <span class="kbd-key">Num 1</span></td>
-              <td>Botão X / Quadrado</td>
+              <td><span class="xbox-btn xbox-x">X</span> (Azul) ou <span class="xbox-btn xbox-y">Y</span></td>
+              <td>Correr / Atirar / Ação Secundária</td>
             </tr>
             <tr>
-              <td><strong>BOTÃO A</strong></td>
-              <td><span class="kbd-key">K</span></td>
-              <td><span class="kbd-key">X</span> ou <span class="kbd-key">Num 2</span></td>
-              <td>Botão A / Cruz</td>
+              <td><strong>TURBO A</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">RB</span> ou <span class="xbox-btn xbox-shoulder">RT</span> (Gatilho Direito)</td>
+              <td>Pulo Rápido / Disparo Turbo</td>
             </tr>
             <tr>
-              <td><strong>TURBO B / TURBO A</strong></td>
-              <td><span class="kbd-key">U</span> / <span class="kbd-key">I</span></td>
-              <td><span class="kbd-key">Num 4</span> / <span class="kbd-key">Num 5</span></td>
-              <td>Gatilhos L1 / R1</td>
+              <td><strong>TURBO B</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">LB</span> ou <span class="xbox-btn xbox-shoulder">LT</span> (Gatilho Esquerdo)</td>
+              <td>Tiro Contínuo Automático (Machinegun)</td>
+            </tr>
+            <tr>
+              <td><strong>D-PAD (Direções)</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> ou <strong>Analógico Esquerdo</strong></td>
+              <td>Mover / Agachar / Mirar</td>
             </tr>
             <tr>
               <td><strong>SELECT</strong></td>
-              <td><span class="kbd-key">Shift</span> ou <span class="kbd-key">Tab</span></td>
-              <td><span class="kbd-key">Num 0</span> ou <span class="kbd-key">[</span></td>
-              <td>Botão Select / Share</td>
+              <td><span class="xbox-btn xbox-shoulder">BACK</span> (Botão Voltar)</td>
+              <td>Trocar armas / Selecionar modo</td>
             </tr>
             <tr>
               <td><strong>START</strong></td>
-              <td><span class="kbd-key">Enter</span> ou <span class="kbd-key">Espaço</span></td>
-              <td><span class="kbd-key">Num Enter</span> ou <span class="kbd-key">]</span></td>
-              <td>Botão Start / Options</td>
+              <td><span class="xbox-btn xbox-shoulder">START</span> (Botão Iniciar)</td>
+              <td>Começar jogo / Pausar</td>
             </tr>
           </tbody>
         </table>
 
-        <div style="background: rgba(0, 229, 255, 0.1); border: 1px dashed var(--neon-cyan); padding: 10px; border-radius: 6px; font-size: 11px; color: var(--neon-cyan);">
-          💡 <strong>Dica:</strong> Se ambos estiverem no mesmo computador, vocês podem jogar juntos usando os dois lados do teclado ou dois controles plugados!
+        <div style="background: rgba(0, 230, 118, 0.1); border: 1px dashed var(--neon-green); padding: 10px; border-radius: 6px; font-size: 11px; color: var(--neon-green);">
+          ✨ <strong>Multiplayer P2P:</strong> O Player 1 joga no controle do Host. A sua amiga usa o controle de Xbox 360 dela no PC dela e os comandos são sincronizados instantaneamente via rede P2P direta!
         </div>
       </div>
     </div>

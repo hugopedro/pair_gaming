@@ -4,8 +4,9 @@
  */
 
 class InputManager {
-  constructor(onButtonEvent) {
+  constructor(onButtonEvent, onGamepadStatusChange = null) {
     this.onButtonEvent = onButtonEvent; // Callback: (playerIdx, buttonName, isDown) => {}
+    this.onGamepadStatusChange = onGamepadStatusChange; // Callback: (playerIdx, gamepadId, isConnected) => {}
 
     // Active key bindings
     this.keyMapP1 = {
@@ -119,7 +120,11 @@ class InputManager {
 
   _initGamepad() {
     window.addEventListener('gamepadconnected', (e) => {
-      console.log(`Gamepad conectado: ${e.gamepad.id} no índice ${e.gamepad.index}`);
+      const playerNum = (e.gamepad.index === 0) ? (this.isSwapped ? 2 : 1) : (this.isSwapped ? 1 : 2);
+      console.log(`🎮 Gamepad conectado: ${e.gamepad.id} no índice ${e.gamepad.index} -> Player ${playerNum}`);
+      if (this.onGamepadStatusChange) {
+        this.onGamepadStatusChange(playerNum, e.gamepad.id, true);
+      }
       if (!this.gamepadLoopActive) {
         this.gamepadLoopActive = true;
         this._pollGamepad();
@@ -127,12 +132,23 @@ class InputManager {
     });
 
     window.addEventListener('gamepaddisconnected', (e) => {
+      const playerNum = (e.gamepad.index === 0) ? (this.isSwapped ? 2 : 1) : (this.isSwapped ? 1 : 2);
       console.log(`Gamepad desconectado do índice ${e.gamepad.index}`);
       delete this.prevGamepadState[e.gamepad.index];
+      if (this.onGamepadStatusChange) {
+        this.onGamepadStatusChange(playerNum, e.gamepad.id, false);
+      }
     });
 
-    // Start polling in case gamepad was already connected before load
+    // Start polling and check initial gamepads
     if ('getGamepads' in navigator) {
+      const gamepads = navigator.getGamepads();
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i] && this.onGamepadStatusChange) {
+          const playerNum = (i === 0) ? (this.isSwapped ? 2 : 1) : (this.isSwapped ? 1 : 2);
+          this.onGamepadStatusChange(playerNum, gamepads[i].id, true);
+        }
+      }
       this.gamepadLoopActive = true;
       this._pollGamepad();
     }
@@ -153,16 +169,26 @@ class InputManager {
       }
       const prevState = this.prevGamepadState[gp.index];
 
-      // Standard Gamepad mapping
+      // Xbox 360 Native Mapping
+      // A (Green) = buttons[0], B (Red) = buttons[1], X (Blue) = buttons[2], Y (Yellow) = buttons[3]
+      // LB = buttons[4], RB = buttons[5], LT = buttons[6], RT = buttons[7]
+      // Back/View = buttons[8], Start/Menu = buttons[9]
+      // D-Pad: Up (12), Down (13), Left (14), Right (15)
+      // Left Analog: axes[0] (X), axes[1] (Y) with 0.3 deadzone
+      const isLtPressed = Boolean(gp.buttons[6]?.pressed || (gp.buttons[6]?.value && gp.buttons[6].value > 0.3));
+      const isRtPressed = Boolean(gp.buttons[7]?.pressed || (gp.buttons[7]?.value && gp.buttons[7].value > 0.3));
+
       const buttonsState = {
-        BUTTON_A: gp.buttons[0]?.pressed || gp.buttons[1]?.pressed, // A or B on Xbox
-        BUTTON_B: gp.buttons[2]?.pressed || gp.buttons[3]?.pressed, // X or Y on Xbox
-        BUTTON_SELECT: gp.buttons[8]?.pressed || gp.buttons[4]?.pressed, // Select or L1
-        BUTTON_START: gp.buttons[9]?.pressed || gp.buttons[5]?.pressed, // Start or R1
-        BUTTON_UP: gp.buttons[12]?.pressed || (gp.axes[1] < -0.4),
-        BUTTON_DOWN: gp.buttons[13]?.pressed || (gp.axes[1] > 0.4),
-        BUTTON_LEFT: gp.buttons[14]?.pressed || (gp.axes[0] < -0.4),
-        BUTTON_RIGHT: gp.buttons[15]?.pressed || (gp.axes[0] > 0.4)
+        BUTTON_A: Boolean(gp.buttons[0]?.pressed || gp.buttons[1]?.pressed), // A (Green) or B (Red)
+        BUTTON_B: Boolean(gp.buttons[2]?.pressed || gp.buttons[3]?.pressed), // X (Blue) or Y (Yellow)
+        BUTTON_TURBO_A: Boolean(gp.buttons[5]?.pressed || isRtPressed),       // RB or RT
+        BUTTON_TURBO_B: Boolean(gp.buttons[4]?.pressed || isLtPressed),       // LB or LT
+        BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
+        BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
+        BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
+        BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
+        BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
+        BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
       };
 
       for (const [btn, isDown] of Object.entries(buttonsState)) {
