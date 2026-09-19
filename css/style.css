@@ -229,22 +229,6 @@ body.ratio-original #remoteVideo {
   background: #000;
 }
 
-/* Graphic Filters */
-.filter-smooth #nesCanvas,
-.filter-smooth #remoteVideo,
-.filter-scale2x #nesCanvas,
-.filter-scale2x #remoteVideo {
-  image-rendering: auto;
-}
-
-.filter-pixelated #nesCanvas,
-.filter-pixelated #remoteVideo {
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
 #remoteVideo {
   display: none;
 }

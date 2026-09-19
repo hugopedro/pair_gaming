@@ -261,35 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
     openModal(controlsModal);
   });
 
-  // Graphic Filter Toggle (HD Suave / Scale2x / Pixel Art)
-  const btnFilter = document.getElementById('btnFilter');
-  const filterLabel = document.getElementById('filterLabel');
-  const filterNames = {
-    smooth: 'HD Suave ✨',
-    scale2x: 'HQ Scale2x 🎮',
-    pixelated: 'Pixel Art 👾'
-  };
-
-  const updateFilterUI = (mode) => {
-    if (filterLabel) filterLabel.textContent = filterNames[mode] || 'HD Suave ✨';
-    const cabinet = document.querySelector('.screen-cabinet') || document.body;
-    cabinet.classList.remove('filter-smooth', 'filter-scale2x', 'filter-pixelated');
-    cabinet.classList.add(`filter-${mode}`);
-  };
-
-  updateFilterUI(emulator.filterMode);
-
-  if (btnFilter) {
-    btnFilter.addEventListener('click', () => {
-      const order = ['smooth', 'scale2x', 'pixelated'];
-      const nextIdx = (order.indexOf(emulator.filterMode) + 1) % order.length;
-      const nextMode = order[nextIdx];
-      emulator.setFilter(nextMode);
-      updateFilterUI(nextMode);
-      showToast(`Filtro Visual: ${filterNames[nextMode]}`);
-    });
-  }
-
   // Aspect Ratio Button Listener
   const btnAspectRatio = document.getElementById('btnAspectRatio');
   if (btnAspectRatio) {

@@ -9,43 +9,29 @@ class NesEmulator {
     this.canvas = canvasElement;
     this.ctx = this.canvas.getContext('2d', { alpha: false });
 
-    // Active graphic filter mode: 'smooth' | 'scale2x' | 'pixelated'
-    this.filterMode = localStorage.getItem('duplinha_filter') || 'smooth';
-
     // Active aspect ratio mode: 'superwide' | '4-3' | '16-10' | '16-9' | 'original'
     this.aspectRatioMode = localStorage.getItem('duplinha_ratio') || 'superwide';
+    this.cropOverscan = localStorage.getItem('duplinha_crop_overscan') !== 'false';
 
-    // Internal 256x240 buffer for JSNES
-    this.offscreenCanvas = document.createElement('canvas');
-    this.offscreenCanvas.width = 256;
-    this.offscreenCanvas.height = 240;
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d', { alpha: false });
-    this.offscreenImageData = this.offscreenCtx.createImageData(256, 240);
+    // xBRZ 6x High-Performance Scaler via WebAssembly (256x240 -> 1536x1440)
+    this.scaler = new XbrzScaler(256, 240, 6);
 
-    this.buf = new ArrayBuffer(this.offscreenImageData.data.length);
+    // Intermediate 1536x1440 canvas for xBRZ
+    this.xbrzCanvas = document.createElement('canvas');
+    this.xbrzCanvas.width = 1536;
+    this.xbrzCanvas.height = 1440;
+    this.xbrzCtx = this.xbrzCanvas.getContext('2d', { alpha: false });
+    this.xbrzImageData = this.xbrzCtx.createImageData(1536, 1440);
+
+    // Raw 256x240 buffer for JSNES
+    this.buf = new ArrayBuffer(256 * 240 * 4);
     this.buf8 = new Uint8ClampedArray(this.buf);
     this.buf32 = new Uint32Array(this.buf);
     for (let i = 0; i < this.buf32.length; i++) {
       this.buf32[i] = 0xFF000000; // Black opaque
     }
 
-    // Intermediate 512x480 canvas for filtering
-    this.scaleCanvas = document.createElement('canvas');
-    this.scaleCanvas.width = 512;
-    this.scaleCanvas.height = 480;
-    this.scaleCtx = this.scaleCanvas.getContext('2d', { alpha: false });
-
-    // 512x480 Buffer for Scale2x filter
-    this.scaleImageData = this.scaleCtx.createImageData(512, 480);
-    this.scaleBuf = new ArrayBuffer(this.scaleImageData.data.length);
-    this.scaleBuf8 = new Uint8ClampedArray(this.scaleBuf);
-    this.scaleBuf32 = new Uint32Array(this.scaleBuf);
-    for (let i = 0; i < this.scaleBuf32.length; i++) {
-      this.scaleBuf32[i] = 0xFF000000;
-    }
-
     // Precompute SuperWide non-linear stretch strip table
-    this.cropOverscan = localStorage.getItem('duplinha_crop_overscan') !== 'false'; // Default: true
     this._initSuperWideTable();
 
     // Set canvas dimensions according to aspect ratio
@@ -86,16 +72,17 @@ class NesEmulator {
 
   _updateCanvasSize() {
     const widthMap = {
-      'superwide': 854,
-      '16-9': 854,
-      '16-10': 768,
-      '4-3': 640,
-      'original': 512
+      'superwide': 1280,
+      '16-9': 1280,
+      '16-10': 1152,
+      '4-3': 960,
+      'original': 768
     };
-    const targetW = widthMap[this.aspectRatioMode] || 854;
-    if (this.canvas.width !== targetW || this.canvas.height !== 480) {
+    const targetW = widthMap[this.aspectRatioMode] || 1280;
+    const targetH = 720;
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
       this.canvas.width = targetW;
-      this.canvas.height = 480;
+      this.canvas.height = targetH;
     }
     this._initSuperWideTable();
   }
@@ -114,10 +101,10 @@ class NesEmulator {
 
   _initSuperWideTable() {
     const N = 32;
-    const srcX0 = this.cropOverscan ? 16 : 0;
-    const srcY0 = this.cropOverscan ? 16 : 0;
-    const srcW = this.cropOverscan ? 480 : 512;
-    const srcH = this.cropOverscan ? 448 : 480;
+    const srcX0 = this.cropOverscan ? 48 : 0;
+    const srcY0 = this.cropOverscan ? 48 : 0;
+    const srcW = this.cropOverscan ? 1440 : 1536;
+    const srcH = this.cropOverscan ? 1344 : 1440;
     const dstW = this.canvas.width;
     const a = 0.75; // 0.75 preserves exact 4:3 scale at center
     this.superWideTable = [];
@@ -148,7 +135,7 @@ class NesEmulator {
     const h = this.canvas.height;
     for (let i = 0; i < len; i++) {
       const s = table[i];
-      this.ctx.drawImage(this.scaleCanvas, s.sx, s.sy, s.sw, s.sh, s.dx, 0, s.dw, h);
+      this.ctx.drawImage(this.xbrzCanvas, s.sx, s.sy, s.sw, s.sh, s.dx, 0, s.dw, h);
     }
   }
 
@@ -160,31 +147,22 @@ class NesEmulator {
           this.buf32[i] = 0xFF000000 | frameBuffer[i];
         }
 
-        // 1. Render to intermediate 512x480 scaleCanvas
-        if (this.filterMode === 'scale2x') {
-          this._applyScale2x(this.buf32, this.scaleBuf32, 256, 240);
-          this.scaleImageData.data.set(this.scaleBuf8);
-          this.scaleCtx.putImageData(this.scaleImageData, 0, 0);
-        } else {
-          this.offscreenImageData.data.set(this.buf8);
-          this.offscreenCtx.putImageData(this.offscreenImageData, 0, 0);
-
-          this.scaleCtx.imageSmoothingEnabled = (this.filterMode === 'smooth');
-          this.scaleCtx.imageSmoothingQuality = 'high';
-          this.scaleCtx.drawImage(this.offscreenCanvas, 0, 0, 512, 480);
-        }
+        // 1. Scale with xBRZ 6x (256x240 -> 1536x1440) via WebAssembly
+        const scaled = this.scaler.scale(this.buf8);
+        this.xbrzImageData.data.set(scaled);
+        this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
 
         // 2. Render to final canvas (SuperWide non-linear or standard aspect ratio)
         if (this.aspectRatioMode === 'superwide') {
           this._drawSuperWide();
         } else {
-          this.ctx.imageSmoothingEnabled = (this.filterMode === 'smooth');
+          this.ctx.imageSmoothingEnabled = true;
           this.ctx.imageSmoothingQuality = 'high';
-          const sx = this.cropOverscan ? 16 : 0;
-          const sy = this.cropOverscan ? 16 : 0;
-          const sw = this.cropOverscan ? 480 : 512;
-          const sh = this.cropOverscan ? 448 : 480;
-          this.ctx.drawImage(this.scaleCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
+          const sx = this.cropOverscan ? 48 : 0;
+          const sy = this.cropOverscan ? 48 : 0;
+          const sw = this.cropOverscan ? 1440 : 1536;
+          const sh = this.cropOverscan ? 1344 : 1440;
+          this.ctx.drawImage(this.xbrzCanvas, sx, sy, sw, sh, 0, 0, this.canvas.width, this.canvas.height);
         }
       },
       onAudioSample: (left, right) => {
@@ -198,48 +176,6 @@ class NesEmulator {
       },
       sampleRate: 44100
     });
-  }
-
-  setFilter(mode) {
-    if (!['smooth', 'scale2x', 'pixelated'].includes(mode)) mode = 'smooth';
-    this.filterMode = mode;
-    localStorage.setItem('duplinha_filter', mode);
-    return mode;
-  }
-
-  _applyScale2x(src, dst, width, height) {
-    const dstWidth = width << 1;
-    for (let y = 0; y < height; y++) {
-      const yPrev = (y > 0 ? y - 1 : 0) * width;
-      const yCurr = y * width;
-      const yNext = (y < height - 1 ? y + 1 : height - 1) * width;
-      const dstY0 = (y << 1) * dstWidth;
-      const dstY1 = ((y << 1) + 1) * dstWidth;
-
-      for (let x = 0; x < width; x++) {
-        const xPrev = x > 0 ? x - 1 : 0;
-        const xNext = x < width - 1 ? x + 1 : width - 1;
-
-        const P = src[yCurr + x];
-        const A = src[yPrev + x];
-        const C = src[yCurr + xPrev];
-        const B = src[yCurr + xNext];
-        const D = src[yNext + x];
-
-        let E0 = P, E1 = P, E2 = P, E3 = P;
-
-        if (C === A && C !== D && A !== B) E0 = A;
-        if (A === B && A !== C && B !== D) E1 = B;
-        if (D === C && D !== B && C !== A) E2 = C;
-        if (B === D && B !== A && D !== C) E3 = D;
-
-        const dstX = x << 1;
-        dst[dstY0 + dstX] = E0;
-        dst[dstY0 + dstX + 1] = E1;
-        dst[dstY1 + dstX] = E2;
-        dst[dstY1 + dstX + 1] = E3;
-      }
-    }
   }
 
   _initAudioContext() {

@@ -31,6 +31,9 @@
       <div class="status-pill" title="Taxa de quadros do emulador">
         <span id="fpsBadge">60 FPS</span>
       </div>
+      <div class="status-pill" title="Filtro de Vídeo xBRZ 6x Ativo">
+        <span style="color: var(--neon-cyan); font-weight: bold;">✨ xBRZ 6x</span>
+      </div>
     </div>
 
     <div class="nav-actions">
@@ -43,9 +46,6 @@
       </button>
       <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
-      </button>
-      <button class="btn" id="btnFilter" title="Alternar filtro gráfico (HD Suave, HQ Scale2x ou Pixel Art)">
-        <span>✨</span> <span id="filterLabel">HD Suave ✨</span>
       </button>
       <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
         <span>📐</span> <span id="aspectRatioLabel">SuperWide 🌟</span>
@@ -255,6 +255,7 @@
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
   <script src="jsnes.min.js"></script>
+  <script src="js/xbrz.js"></script>
   <script src="js/emulator.js"></script>
   <script src="js/input.js"></script>
   <script src="js/multiplayer.js"></script>
