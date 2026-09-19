@@ -177,12 +177,14 @@ class InputManager {
       // Left Analog: axes[0] (X), axes[1] (Y) with 0.3 deadzone
       const isLtPressed = Boolean(gp.buttons[6]?.pressed || (gp.buttons[6]?.value && gp.buttons[6].value > 0.3));
       const isRtPressed = Boolean(gp.buttons[7]?.pressed || (gp.buttons[7]?.value && gp.buttons[7].value > 0.3));
+      const isLbPressed = Boolean(gp.buttons[4]?.pressed);
+      const isRbPressed = Boolean(gp.buttons[5]?.pressed);
 
       const buttonsState = {
         BUTTON_A: Boolean(gp.buttons[0]?.pressed || gp.buttons[1]?.pressed), // A (Green) or B (Red)
         BUTTON_B: Boolean(gp.buttons[2]?.pressed || gp.buttons[3]?.pressed), // X (Blue) or Y (Yellow)
-        BUTTON_TURBO_A: Boolean(gp.buttons[5]?.pressed || isRtPressed),       // RB or RT
-        BUTTON_TURBO_B: Boolean(gp.buttons[4]?.pressed || isLtPressed),       // LB or LT
+        BUTTON_TURBO_A: playerNum === 1 ? isRtPressed : Boolean(isRbPressed || isRtPressed), // RT for P1 (RB is Load State)
+        BUTTON_TURBO_B: playerNum === 1 ? isLtPressed : Boolean(isLbPressed || isLtPressed), // LT for P1 (LB is Save State)
         BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
         BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
         BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
@@ -190,6 +192,12 @@ class InputManager {
         BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
         BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
       };
+
+      // Player 1 dedicated quick save / load state triggers on shoulder buttons
+      if (playerNum === 1) {
+        buttonsState.SAVE_STATE = isLbPressed;
+        buttonsState.LOAD_STATE = isRbPressed;
+      }
 
       for (const [btn, isDown] of Object.entries(buttonsState)) {
         if (Boolean(isDown) !== Boolean(prevState[btn])) {

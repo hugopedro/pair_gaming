@@ -154,6 +154,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const input = new InputManager(
     (playerNum, buttonName, isDown) => {
       ensureAudio();
+
+      // Quick Save State (LB) and Quick Load State (RB) for Player 1
+      if (playerNum === 1) {
+        if (buttonName === 'SAVE_STATE') {
+          if (isDown) {
+            const saved = emulator.saveState();
+            showToast(saved ? '💾 Estado Salvo com Sucesso! (LB)' : 'Falha ao salvar estado.');
+          }
+          return;
+        }
+        if (buttonName === 'LOAD_STATE') {
+          if (isDown) {
+            const loaded = emulator.loadState();
+            showToast(loaded ? '📂 Estado Carregado! (RB)' : 'Nenhum estado salvo encontrado.');
+          }
+          return;
+        }
+      }
+
       if (multiplayer.mode === 'CLIENT' || isPlayer2Mode) {
         // Attempt fullscreen on gamepad/controller button press
         if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
