@@ -25,50 +25,35 @@ class ReactionsManager {
   }
 
   _createDOM() {
-    let bar = document.getElementById('reactionsBar');
-    if (!bar) {
-      bar = document.createElement('div');
-      bar.className = 'reactions-bar';
-      bar.id = 'reactionsBar';
-
-      Object.values(this.reactions).forEach(r => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'reaction-btn';
-        btn.setAttribute('data-reaction', r.id);
-        btn.title = `${r.label} (Atalho: ${r.key})`;
-        btn.innerHTML = `<span class="r-emoji">${r.emoji}</span><span class="r-key">${r.key}</span>`;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.trigger(r.id, true);
-        });
-        bar.appendChild(btn);
-      });
-
-      // Insert inside screen cabinet next to chat
-      this.cabinet.appendChild(bar);
+    // Overlay removed as requested - reactions are triggered via keys 1-5 outside chat
+    const bar = document.getElementById('reactionsBar');
+    if (bar) {
+      bar.remove();
     }
-    this.bar = bar;
   }
 
   _bindEvents() {
+    const keyMap = {
+      'Digit1': 'love', 'Numpad1': 'love', '1': 'love',
+      'Digit2': 'laugh', 'Numpad2': 'laugh', '2': 'laugh',
+      'Digit3': 'alert', 'Numpad3': 'alert', '3': 'alert',
+      'Digit4': 'victory', 'Numpad4': 'victory', '4': 'victory',
+      'Digit5': 'oops', 'Numpad5': 'oops', '5': 'oops'
+    };
+
     // Keyboard shortcuts (1-5) when NOT typing in input or chat
     window.addEventListener('keydown', (e) => {
-      if (document.querySelector('.modal-backdrop.open')) return;
+      // Ignore if modals are open
+      if (document.querySelector('.modal-backdrop.open, .modal-backdrop.active')) return;
+      // Ignore if in-game chat is open
       if (window.inGameChat && window.inGameChat.isOpen) return;
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+      // Ignore if user is typing in any input or editable field
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
 
-      const keyMap = {
-        'Digit1': 'love', 'Numpad1': 'love',
-        'Digit2': 'laugh', 'Numpad2': 'laugh',
-        'Digit3': 'alert', 'Numpad3': 'alert',
-        'Digit4': 'victory', 'Numpad4': 'victory',
-        'Digit5': 'oops', 'Numpad5': 'oops'
-      };
-
-      if (keyMap[e.code]) {
+      const reactionId = keyMap[e.code] || keyMap[e.key];
+      if (reactionId) {
         e.preventDefault();
-        this.trigger(keyMap[e.code], true);
+        this.trigger(reactionId, true);
       }
     });
   }
