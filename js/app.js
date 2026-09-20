@@ -161,20 +161,43 @@ document.addEventListener('DOMContentLoaded', () => {
       multiplayer.sendCopilotStatus(coPilotActive);
     }
     if (coPilotActive) {
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      for (const pressedBtn of hostRemotePressed) {
+        emulator.buttonUp(targetPlayer, pressedBtn);
+      }
+      hostRemotePressed.clear();
       showToast('🤝 Modo Co-Pilot Ativo: Você assumiu o controle do boneco dela!');
     } else {
       showToast('🎮 Modo Co-Pilot Desativado: Controle devolvido para ela.');
     }
   }
 
+  const hostRemotePressed = new Set();
+
   const multiplayer = new MultiplayerManager({
-    onRemoteInput: (btn, isDown) => {
+    onRemoteInput: (btn, isDown, activeList) => {
       // Host receives Client input -> If Co-Pilot is active, ignore remote inputs so girlfriend does not fight movements
       if (coPilotActive) return;
 
       const targetPlayer = remoteControlsP1 ? 1 : 2;
-      if (isDown) emulator.buttonDown(targetPlayer, btn);
-      else emulator.buttonUp(targetPlayer, btn);
+      if (isDown) {
+        hostRemotePressed.add(btn);
+        emulator.buttonDown(targetPlayer, btn);
+      } else {
+        hostRemotePressed.delete(btn);
+        emulator.buttonUp(targetPlayer, btn);
+      }
+
+      // Self-healing: reconcile any button that was released on client but missed on host
+      if (Array.isArray(activeList)) {
+        const activeSet = new Set(activeList);
+        for (const pressedBtn of Array.from(hostRemotePressed)) {
+          if (!activeSet.has(pressedBtn)) {
+            hostRemotePressed.delete(pressedBtn);
+            emulator.buttonUp(targetPlayer, pressedBtn);
+          }
+        }
+      }
     },
     onRemoteStream: (stream) => {
       // Client receives Host's AV stream -> display on remoteVideo in fullscreen
@@ -189,6 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (mode === 'ONLINE') statusDot.classList.add('online');
       else if (mode === 'WAITING') statusDot.classList.add('waiting');
       else statusDot.classList.add('offline');
+
+      if (mode !== 'ONLINE') {
+        const targetPlayer = remoteControlsP1 ? 1 : 2;
+        for (const pressedBtn of hostRemotePressed) {
+          emulator.buttonUp(targetPlayer, pressedBtn);
+        }
+        hostRemotePressed.clear();
+      }
     },
     onPingUpdate: (ping) => {
       pingText.textContent = `${ping}ms`;

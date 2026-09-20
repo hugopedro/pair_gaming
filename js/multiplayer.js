@@ -113,7 +113,7 @@ class MultiplayerManager {
       if (data.type === 'INPUT') {
         // Inject remote Player 2 button input into emulator Controller 2
         if (this.onRemoteInput) {
-          this.onRemoteInput(data.button, data.isDown);
+          this.onRemoteInput(data.button, data.isDown, data.active);
         }
       } else if (data.type === 'CHAT') {
         if (this.onChatMessage) {
@@ -157,7 +157,7 @@ class MultiplayerManager {
     this.peer.on('open', (myId) => {
       console.log('Client Peer pronto. Conectando a:', targetRoomId);
       this.conn = this.peer.connect(targetRoomId, {
-        reliable: false // UDP for minimal latency
+        reliable: true // Reliable & ordered SCTP to prevent dropped keyups / stuck buttons
       });
       this._setupClientDataConnection();
     });
@@ -286,11 +286,21 @@ class MultiplayerManager {
   }
 
   sendInput(buttonName, isDown) {
+    if (!this.clientActiveButtons) {
+      this.clientActiveButtons = new Set();
+    }
+    if (isDown) {
+      this.clientActiveButtons.add(buttonName);
+    } else {
+      this.clientActiveButtons.delete(buttonName);
+    }
+
     if (this.isConnected && this.conn && this.conn.open) {
       this.conn.send({
         type: 'INPUT',
         button: buttonName,
-        isDown: isDown
+        isDown: isDown,
+        active: Array.from(this.clientActiveButtons)
       });
     }
   }
