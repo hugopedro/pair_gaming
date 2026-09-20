@@ -87,6 +87,8 @@ class SnesEmulator {
     // Callbacks
     this.onStatusChange = null;
     this.onFPSUpdate = null;
+
+    this._updateCanvasSize();
   }
 
   _initScaler() {
@@ -115,9 +117,69 @@ class SnesEmulator {
     }
   }
 
+  _updateCanvasSize() {
+    const widthMap = {
+      'superwide': 1280,
+      '16-9': 1280,
+      '16-10': 1152,
+      '4-3': 960
+    };
+    const targetW = widthMap[this.aspectRatioMode] || 1280;
+    const targetH = 720;
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+      this.canvas.width = targetW;
+      this.canvas.height = targetH;
+      if (this.ctx) {
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.imageSmoothingQuality = 'high';
+      }
+    }
+    this._initSuperWideTable();
+  }
+
+  _initSuperWideTable() {
+    const N = 32;
+    const srcW = 1024;
+    const srcH = 896;
+    const dstW = this.canvas.width;
+    const a = 0.75; // 0.75 preserves exact 4:3 scale at center
+    this.superWideTable = [];
+
+    for (let i = 0; i < N; i++) {
+      const u0 = i / N;
+      const u1 = (i + 1) / N;
+      const s0 = 2 * u0 - 1;
+      const s1 = 2 * u1 - 1;
+
+      const d0 = (a * s0 + (1 - a) * Math.pow(s0, 3) + 1) / 2;
+      const d1 = (a * s1 + (1 - a) * Math.pow(s1, 3) + 1) / 2;
+
+      const sx = i * (srcW / N);
+      const sw = srcW / N;
+      const dx = d0 * dstW;
+      const dw = (d1 * dstW) - dx + 0.6; // Overlap to prevent seams
+
+      this.superWideTable.push({ sx, sy: 0, sw, sh: srcH, dx, dw });
+    }
+  }
+
+  _drawSuperWide() {
+    if (!this.xbrzCanvas || !this.ctx) return;
+    this.ctx.imageSmoothingEnabled = true;
+    this.ctx.imageSmoothingQuality = 'high';
+    const table = this.superWideTable;
+    const len = table.length;
+    const h = this.canvas.height;
+    for (let i = 0; i < len; i++) {
+      const s = table[i];
+      this.ctx.drawImage(this.xbrzCanvas, s.sx, s.sy, s.sw, s.sh, s.dx, 0, s.dw, h);
+    }
+  }
+
   setAspectRatio(ratio) {
     this.aspectRatioMode = ratio;
     localStorage.setItem('duplinha_snes_ratio', ratio);
+    this._updateCanvasSize();
   }
 
   _getButtonKey(buttonName) {
@@ -357,11 +419,8 @@ class SnesEmulator {
 
       // 3. Initialize Canvas 2D on the visible display canvas (xBRZ 4x)
       this._initScaler();
-      this.canvas.width = 1024;
-      this.canvas.height = 896;
       this.ctx = this.canvas.getContext('2d', { alpha: false });
-      this.ctx.imageSmoothingEnabled = true;
-      this.ctx.imageSmoothingQuality = 'high';
+      this._updateCanvasSize();
 
       // 4. Launch Nostalgist on the HIDDEN WebGL canvas (256×224 buffer = tiny)
       const launchOptions = {
@@ -378,7 +437,7 @@ class SnesEmulator {
         },
         retroarchConfig: {
           video_vsync: 'true',
-          video_threaded: 'true',
+          video_threaded: 'false',
           video_hard_sync: 'false',
           video_smooth: 'false',
           video_shader_enable: 'false',
@@ -419,22 +478,6 @@ class SnesEmulator {
       // 5. Start render loop: copy frames WebGL → Canvas 2D via xBRZ 4x (WASM CPU)
       this._renderLoopRunning = true;
       this._startRenderLoop();
-
-      // 6. ResizeObserver to update display canvas buffer on resize/fullscreen
-      if (!this._resizeObserver) {
-        this._resizeObserver = new ResizeObserver((entries) => {
-          for (const entry of entries) {
-            const { width, height } = entry.contentRect;
-            if (width > 0 && height > 0 && this.ctx) {
-              this.canvas.width = Math.round(width * (window.devicePixelRatio || 1));
-              this.canvas.height = Math.round(height * (window.devicePixelRatio || 1));
-              this.ctx.imageSmoothingEnabled = true;
-              this.ctx.imageSmoothingQuality = 'high';
-            }
-          }
-        });
-        this._resizeObserver.observe(this.canvas);
-      }
 
       this.isRunning = true;
       this.isPaused = false;
@@ -484,13 +527,17 @@ class SnesEmulator {
           this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
 
           // 4. Render 1024x896 xBRZ image to visible display canvas
-          this.ctx.imageSmoothingEnabled = true;
-          this.ctx.imageSmoothingQuality = 'high';
-          this.ctx.drawImage(
-            this.xbrzCanvas,
-            0, 0, 1024, 896,
-            0, 0, this.canvas.width, this.canvas.height
-          );
+          if (this.aspectRatioMode === 'superwide') {
+            this._drawSuperWide();
+          } else {
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.imageSmoothingQuality = 'high';
+            this.ctx.drawImage(
+              this.xbrzCanvas,
+              0, 0, 1024, 896,
+              0, 0, this.canvas.width, this.canvas.height
+            );
+          }
           return;
         } catch (_) {
           // Fallback to direct drawImage if anything fails

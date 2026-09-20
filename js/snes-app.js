@@ -25,11 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     '16-10': '16:10 Wide 🖥️',
     'superwide': 'SuperWide 🌟'
   };
-  let savedRatio = localStorage.getItem('duplinha_snes_ratio');
-  if (!savedRatio || savedRatio === 'superwide') {
-    savedRatio = '16-9';
-    localStorage.setItem('duplinha_snes_ratio', '16-9');
-  }
+  let savedRatio = localStorage.getItem('duplinha_snes_ratio') || '16-9';
   let currentRatio = savedRatio;
 
   function updateAspectRatioUI(ratio, shouldBroadcast = true) {
