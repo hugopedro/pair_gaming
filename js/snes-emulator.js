@@ -279,7 +279,7 @@ class SnesEmulator {
           fileContent: blob
         },
         element: this.canvas,
-        size: { width: 1280, height: 720 },
+        size: { width: 1536, height: 1344 },
         shader: '6xbrz',
         resolveShader: async () => {
           try {
@@ -287,14 +287,13 @@ class SnesEmulator {
             if (res.ok) {
               return [
                 'shaders/xbrz/6xbrz.glslp',
-                'shaders/xbrz/shaders/xbrz-freescale.glsl'
+                'shaders/xbrz/shaders/6xbrz.glsl'
               ];
             }
           } catch (_) {}
-          // Fallback to jsDelivr CDN
           return [
-            'https://cdn.jsdelivr.net/gh/libretro/glsl-shaders@468f67b6f6788e2719d1dd28dfb2c9b7c3db3cc7/xbrz/xbrz-freescale.glslp',
-            'https://cdn.jsdelivr.net/gh/libretro/glsl-shaders@468f67b6f6788e2719d1dd28dfb2c9b7c3db3cc7/xbrz/shaders/xbrz-freescale.glsl'
+            'shaders/xbrz/6xbrz.glslp',
+            'shaders/xbrz/shaders/6xbrz.glsl'
           ];
         },
         style: {
@@ -303,12 +302,10 @@ class SnesEmulator {
           objectFit: 'fill'
         },
         retroarchConfig: {
-          video_vsync: 'false',
+          video_vsync: 'true',
           video_threaded: 'true',
           video_hard_sync: 'false',
           video_smooth: 'false',
-          video_frame_delay: '0',
-          video_max_swapchain_images: '3',
           savestate_thumbnail_enable: 'false',
           savestate_auto_save: 'false',
           savestate_auto_load: 'false',
@@ -354,11 +351,11 @@ class SnesEmulator {
       this.isRunning = true;
       this.isPaused = false;
 
-      // Start automatic rewind buffer captures every 2 seconds (15 snapshots = 30s)
-      this.maxRewindStates = 15;
+      // Start automatic rewind buffer captures every 3 seconds (10 snapshots = 30s)
+      this.maxRewindStates = 10;
       this.rewindTimer = setInterval(() => {
         this._captureRewindState();
-      }, 2000);
+      }, 3000);
 
       // Start FPS monitor
       this._startFPSMonitor();
