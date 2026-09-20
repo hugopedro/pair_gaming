@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       const buffer = await file.arrayBuffer();
-      const success = await emulator.loadROM(buffer, cleanName);
+      const success = await emulator.loadROM(buffer, cleanName, file.name);
       if (success) {
         const romLabel = document.getElementById('currentRomLabel');
         if (romLabel) romLabel.textContent = cleanName;

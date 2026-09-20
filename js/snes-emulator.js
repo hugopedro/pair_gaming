@@ -244,7 +244,7 @@ class SnesEmulator {
     return { success: false, reason: 'unknown' };
   }
 
-  async loadROM(romData, romName = 'Super Nintendo Game') {
+  async loadROM(romData, romName = 'Super Nintendo Game', originalFileName = '') {
     this.currentRomData = romData;
     this.currentRomName = romName;
 
@@ -262,6 +262,10 @@ class SnesEmulator {
     this.rewindBuffer = [];
 
     try {
+      const ext = (originalFileName && originalFileName.match(/\.(sfc|smc|zip|bin)$/i))
+        ? originalFileName.match(/\.(sfc|smc|zip|bin)$/i)[1].toLowerCase()
+        : 'sfc';
+      const fileName = `${romName.replace(/[^a-zA-Z0-9_-]/g, '_')}.${ext}`;
       const blob = romData instanceof Blob ? romData : new Blob([romData]);
       const NostalgistClass = window.Nostalgist;
       if (!NostalgistClass) {
@@ -269,8 +273,11 @@ class SnesEmulator {
       }
 
       this.nostalgist = await NostalgistClass.launch({
-        core: 'snes9x_2005',
-        rom: blob,
+        core: 'snes9x',
+        rom: {
+          fileName: fileName,
+          fileContent: blob
+        },
         element: this.canvas,
         retroarchConfig: {
           // Disable default keyboard bindings so our InputManager handles all keys and gamepads cleanly
