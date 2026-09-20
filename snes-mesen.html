@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Duplinha SNES - Mesen Live Stream & P2P Co-op</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/snes-style.css">
+  <style>
+    /* Mesen Stream Specific Styling */
+    .mesen-badge {
+      background: linear-gradient(135deg, #007acc, #004d80) !important;
+      border-color: #33aaff !important;
+      box-shadow: 0 0 10px rgba(0, 122, 204, 0.6) !important;
+    }
+    .btn-mesen {
+      background: linear-gradient(135deg, #007acc, #005999);
+      border: 1px solid #33aaff;
+      color: #fff;
+      font-weight: bold;
+    }
+    .btn-mesen:hover {
+      background: linear-gradient(135deg, #0094f7, #007acc);
+      box-shadow: 0 0 16px rgba(51, 170, 255, 0.7);
+    }
+    .bridge-pill {
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .bridge-pill.connected {
+      border-color: #00e676 !important;
+      color: #00e676 !important;
+    }
+    .bridge-pill.disconnected {
+      border-color: #ff9100 !important;
+      color: #ff9100 !important;
+    }
+    #mesenVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      border-radius: 6px;
+    }
+    .mesen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 10;
+      padding: 24px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+    .mesen-instructions {
+      max-width: 600px;
+      background: rgba(27, 30, 36, 0.9);
+      border: 1px solid var(--snes-purple);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    .mesen-instructions h2 {
+      margin-top: 0;
+      color: #33aaff;
+      font-size: 1.2rem;
+    }
+    .mesen-instructions ol {
+      text-align: left;
+      line-height: 1.8;
+      color: #e0e0e0;
+      padding-left: 20px;
+    }
+    .mesen-instructions code {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #ffcc00;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="snes-famicom-dots">
+        <span class="famicom-dot dot-blue"></span>
+        <span class="famicom-dot dot-yellow"></span>
+        <span class="famicom-dot dot-green"></span>
+        <span class="famicom-dot dot-red"></span>
+      </div>
+      <span class="brand-title">DUPLINHA SNES</span>
+      <span class="brand-badge mesen-badge">MESEN STREAM ⚡</span>
+    </div>
+
+    <div class="header-status">
+      <div class="status-pill">
+        <span class="status-dot offline" id="statusDot"></span>
+        <span id="statusText">Modo Local (Host)</span>
+      </div>
+      <div class="status-pill" title="Latência de rede WebRTC">
+        <span>⚡ PING:</span>
+        <strong id="pingText">--</strong>
+      </div>
+      <div class="status-pill bridge-pill disconnected" id="bridgePill" title="Status da Bridge Local do Mesen (Player 2)">
+        <span id="bridgeIcon">🔌</span>
+        <span id="bridgeText">Bridge P2: Desconectada</span>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Console Switcher -->
+      <div class="console-switcher">
+        <a href="index.html" class="btn-console btn-nes" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
+        <a href="mastersystem.html" class="btn-console btn-sega" title="Emulador Master System"><span>🔵</span> <span>Master</span></a>
+        <a href="snes.html" class="btn-console btn-snes" title="SNES Emulador Web (WASM)"><span>🟣</span> <span>SNES Web</span></a>
+        <a href="snes-mesen.html" class="btn-console btn-snes active" title="Transmitir Mesen Nativo (xBRZ 4x)"><span>⚡</span> <span>SNES Mesen</span></a>
+      </div>
+
+      <button class="btn btn-mesen" id="btnStartCapture" title="Capturar a janela do Mesen em 60 FPS com áudio">
+        <span>🖥️</span> <span>Compartilhar Mesen</span>
+      </button>
+      <button class="btn btn-snes-primary" id="btnMultiplayer" title="Convidar Sandy via link direto WebRTC">
+        <span>🔗</span> <span>Convidar Sandy</span>
+      </button>
+      <button class="btn" id="btnControls" title="Ver mapeamento dos controles">
+        <span>🎮</span> <span>Controles</span>
+      </button>
+      <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
+        <span>⛶</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport -->
+  <main class="main-viewport">
+    <div class="screen-cabinet">
+      <!-- Mesen Video Stream (Both Host & Client) -->
+      <video id="mesenVideo" autoplay playsinline></video>
+
+      <!-- Welcome / Instructions Overlay -->
+      <div class="mesen-overlay" id="mesenOverlay">
+        <div class="mesen-instructions">
+          <h2>🎮 Transmissão do Mesen Nativo com xBRZ 4x</h2>
+          <ol>
+            <li>Abra o <strong>Mesen</strong> no seu computador e configure o <strong>xBRZ 4x</strong>.</li>
+            <li>Clique em <strong>"🖥️ Compartilhar Mesen"</strong> acima e selecione a janela do Mesen (lembre-se de marcar <em>"Compartilhar áudio"</em>).</li>
+            <li>Clique em <strong>"🔗 Convidar Sandy"</strong> e envie o link para ela.</li>
+            <li>Para os comandos da Sandy chegarem ao Mesen, abra o arquivo <code>iniciar_mesen_bridge.bat</code> na pasta do projeto!</li>
+          </ol>
+          <button class="btn btn-mesen" id="btnStartCaptureHero" style="margin-top: 12px; font-size: 1rem; padding: 10px 20px;">
+            <span>🖥️</span> Iniciar Transmissão do Mesen Agora
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal Multiplayer -->
+  <div class="modal-overlay" id="multiplayerModal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔗 Convidar Jogador 2 (Sandy)</h3>
+        <button class="btn-close" id="btnCloseModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Envie o link abaixo para a Sandy entrar direto no seu jogo:</p>
+        <div class="invite-link-box">
+          <input type="text" id="inviteLinkInput" readonly>
+          <button class="btn btn-snes-primary" id="btnCopyInviteLink">Copiar Link</button>
+        </div>
+        <p style="font-size: 0.8rem; color: #888; margin-top: 10px;">
+          Ela receberá o vídeo em 60 FPS com áudio estéreo e xBRZ 4x direto do seu Mesen!
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
+  <script src="peerjs.min.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/snes-mesen-app.js"></script>
+</body>
+</html>
