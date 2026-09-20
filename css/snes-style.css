@@ -1,0 +1,164 @@
+/* ==========================================================================
+   css/snes-style.css - Super Nintendo Theme for Duplinha SNES
+   Super Famicom & European SNES aesthetic:
+   - Iconic 4-Color Quad Palette: Red (A), Yellow (B), Green (Y), Blue (X)
+   - Sleek 16-bit console dark & light gray accents
+   - Modern Glassmorphism & Cyber-Retro Polish
+   ========================================================================== */
+
+@import url('style.css');
+
+:root {
+  --snes-red: #e60012;
+  --snes-yellow: #ffcc00;
+  --snes-green: #00a651;
+  --snes-blue: #0066cc;
+  --snes-purple: #795290;
+  --snes-purple-light: #a47bbd;
+  --snes-purple-glow: rgba(164, 123, 189, 0.5);
+  --snes-gray-dark: #121418;
+  --snes-gray-panel: #1b1e24;
+  --snes-border: #2d323c;
+}
+
+/* Super Nintendo Subtle Grid & Vignette */
+body {
+  background-color: var(--snes-gray-dark);
+  background-image: 
+    linear-gradient(rgba(121, 82, 144, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(121, 82, 144, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 50% 15%, rgba(121, 82, 144, 0.18) 0%, transparent 75%);
+  background-size: 28px 28px, 28px 28px, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Header SNES Theme */
+.top-nav {
+  border-bottom: 2px solid var(--snes-purple);
+  background: rgba(18, 20, 24, 0.95);
+  box-shadow: 0 4px 24px rgba(121, 82, 144, 0.25);
+}
+
+.brand-title {
+  background: linear-gradient(135deg, #a47bbd 0%, #ffffff 50%, #795290 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-badge.snes-badge {
+  background: linear-gradient(135deg, #795290, #543368);
+  color: #fff;
+  border-color: #a47bbd;
+  box-shadow: 0 0 10px var(--snes-purple-glow);
+}
+
+/* 4-Color Super Famicom Dots */
+.snes-famicom-dots {
+  display: inline-flex;
+  gap: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.famicom-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-blue { background-color: var(--snes-blue); box-shadow: 0 0 6px var(--snes-blue); }
+.dot-yellow { background-color: var(--snes-yellow); box-shadow: 0 0 6px var(--snes-yellow); }
+.dot-green { background-color: var(--snes-green); box-shadow: 0 0 6px var(--snes-green); }
+.dot-red { background-color: var(--snes-red); box-shadow: 0 0 6px var(--snes-red); }
+
+/* SNES Primary Button */
+.btn-snes-primary {
+  background: linear-gradient(135deg, #795290, #543368);
+  border-color: #a47bbd;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(121, 82, 144, 0.4);
+}
+
+.btn-snes-primary:hover {
+  background: linear-gradient(135deg, #8c5fa7, #663e7d);
+  border-color: #c09ad6;
+  box-shadow: 0 0 18px rgba(164, 123, 189, 0.7);
+  transform: translateY(-2px);
+}
+
+/* Console Switcher Navigation */
+.console-switcher {
+  display: inline-flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 3px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-console {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  color: #a0aec0;
+  transition: all 0.2s ease;
+}
+
+.btn-console:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-console.active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+}
+
+.btn-console.btn-nes.active {
+  background: rgba(230, 0, 18, 0.3);
+  border-color: #e60012;
+  box-shadow: 0 0 8px rgba(230, 0, 18, 0.5);
+}
+
+.btn-console.btn-sega.active {
+  background: rgba(0, 102, 204, 0.3);
+  border-color: #0066cc;
+  box-shadow: 0 0 8px rgba(0, 102, 204, 0.5);
+}
+
+.btn-console.btn-snes.active {
+  background: rgba(121, 82, 144, 0.4);
+  border-color: #a47bbd;
+  box-shadow: 0 0 8px var(--snes-purple-glow);
+}
+
+/* Cabinet Border */
+.screen-cabinet {
+  border: 2px solid var(--snes-border);
+  box-shadow: 
+    0 0 30px rgba(0, 0, 0, 0.8),
+    0 0 15px rgba(121, 82, 144, 0.2);
+  background: #000;
+}
+
+/* Bottom Controls Dashboard */
+.bottom-dashboard {
+  background: rgba(18, 20, 24, 0.95);
+  border-top: 2px solid var(--snes-border);
+}
+
+/* SNES Controller Modal Mapping Badges */
+.badge-snes-a { background: var(--snes-red); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-snes-b { background: var(--snes-yellow); color: #000; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-snes-x { background: var(--snes-blue); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-snes-y { background: var(--snes-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-snes-l { background: #4a5568; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.badge-snes-r { background: #4a5568; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }

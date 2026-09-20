@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Duplinha SNES - Emulador Super Nintendo P2P Co-op 2 Jogadores</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/snes-style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand">
+      <div class="snes-famicom-dots">
+        <span class="famicom-dot dot-blue"></span>
+        <span class="famicom-dot dot-yellow"></span>
+        <span class="famicom-dot dot-green"></span>
+        <span class="famicom-dot dot-red"></span>
+      </div>
+      <span class="brand-title">DUPLINHA SNES</span>
+      <span class="brand-badge snes-badge">16-BIT CO-OP</span>
+    </div>
+
+    <div class="header-status">
+      <div class="status-pill">
+        <span class="status-dot offline" id="statusDot"></span>
+        <span id="statusText">Modo Offline (Local)</span>
+      </div>
+      <div class="status-pill" title="Latência de rede em tempo real">
+        <span>⚡ PING:</span>
+        <strong id="pingText">--</strong>
+      </div>
+      <div class="status-pill" title="Taxa de quadros do emulador">
+        <span id="fpsBadge">60 FPS</span>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <!-- Console Switcher -->
+      <div class="console-switcher">
+        <a href="index.html" class="btn-console btn-nes" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
+        <a href="mastersystem.html" class="btn-console btn-sega" title="Emulador Sega Master System"><span>🔵</span> <span>Master System</span></a>
+        <a href="snes.html" class="btn-console btn-snes active" title="Emulador Super Nintendo"><span>🟣</span> <span>SNES</span></a>
+      </div>
+
+      <input type="file" id="romInput" accept=".sfc,.smc,.zip" style="display: none;">
+      <button class="btn btn-snes-primary" id="btnLoadRom" title="Carregar arquivo .sfc / .smc do seu computador">
+        <span>📁</span> <span>Carregar ROM</span>
+      </button>
+      <button class="btn btn-snes-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
+        <span>🔗</span> <span>Jogar Online (P2P)</span>
+      </button>
+      <button class="btn btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
+        <span>⏪</span> <span class="rewind-label">Rebobinar (3s)</span>
+      </button>
+      <button class="btn btn-copilot" id="btnCopilotTop" title="Assumir o controle do boneco dela temporariamente para passar fase (Atalho: C / R3 no Controle)">
+        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
+      </button>
+      <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
+      </button>
+      <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (16:9 Total, 4:3 CRT, 16:10 Wide)">
+        <span>📐</span> <span id="aspectRatioLabel">16:9 Total 🌟</span>
+      </button>
+      <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360 para SNES">
+        <span>🎮</span> <span>Controles (Xbox 360)</span>
+      </button>
+      <button class="btn btn-clip-save" id="btnClipTop" title="Gravar e baixar clipe dos últimos 10 segundos em vídeo (Atalho: F9)">
+        <span>📹</span> <span>Clipe (10s)</span>
+      </button>
+      <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
+        <span>⛶</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Viewport (Screen Cabinet) -->
+  <main class="main-viewport">
+    <div class="screen-cabinet">
+      <!-- Host / Local Emulator Canvas -->
+      <canvas id="snesCanvas"></canvas>
+
+      <!-- Client P2P Live Stream Video -->
+      <video id="remoteVideo" autoplay playsinline></video>
+
+      <!-- Co-Pilot Active Banners -->
+      <div class="copilot-banner host" id="copilotHostBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>MODO CO-PILOT ATIVO:</strong> Você está no controle do boneco dela! [Pressione C ou clique para devolver]</span>
+      </div>
+      <div class="copilot-banner client" id="copilotClientBanner" style="display: none;">
+        <span class="copilot-icon">🤝</span>
+        <span><strong>CO-PILOT ATIVO:</strong> Hugo assumiu o controle para te ajudar! Solte o controle um instante.</span>
+      </div>
+
+      <!-- Drag and Drop Overlay -->
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-content">
+          <div class="drop-zone-icon">👾</div>
+          <h2>Arraste sua ROM de Super Nintendo aqui</h2>
+          <p>Formatos suportados: .sfc, .smc, .zip</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Controls Dashboard -->
+  <footer class="bottom-dashboard">
+    <div class="dashboard-left">
+      <button class="btn btn-secondary" id="btnPause" title="Pausar / Continuar jogo">
+        <span>⏸️</span> <span>Pausar</span>
+      </button>
+      <button class="btn btn-secondary" id="btnReset" title="Reiniciar jogo">
+        <span>🔄</span> <span>Reiniciar</span>
+      </button>
+      <button class="btn btn-secondary" id="btnSaveState" title="Salvar Estado no PC / Navegador (Atalho: LB)">
+        <span>💾</span> <span>Salvar (LB)</span>
+      </button>
+      <button class="btn btn-secondary" id="btnLoadState" title="Carregar Estado mais recente (Atalho: RB)">
+        <span>📂</span> <span>Carregar (RB)</span>
+      </button>
+    </div>
+
+    <div class="dashboard-center">
+      <div class="game-info">
+        <span class="game-info-label">ROM ATUAL:</span>
+        <span class="game-info-title" id="currentRomLabel">Nenhum jogo carregado</span>
+      </div>
+    </div>
+
+    <div class="dashboard-right">
+      <div class="player-device-status">
+        <div class="device-pill">
+          <span class="device-dot p1-dot"></span>
+          <span id="p1Device">🎮 Hugo (Host / P1)</span>
+        </div>
+        <div class="device-pill">
+          <span class="device-dot p2-dot"></span>
+          <span id="p2Device">👩 Sandy (P2)</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal: Multiplayer Online (P2P WebRTC) -->
+  <div class="modal-backdrop" id="multiplayerModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">🔗 JOGAR SUPER NINTENDO ONLINE (P2P)</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted);">
+          Conexão ponto a ponto direta (P2P) via WebRTC. O Player 1 transmite a tela do Super Nintendo em 60 FPS com áudio cristalino e a Sandy joga no PC dela com zero complicação!
+        </p>
+
+        <!-- Host section -->
+        <div class="input-group" style="background: #14171d; padding: 14px; border-radius: 8px; border: 1px solid var(--snes-border);">
+          <label style="color: var(--snes-purple-light); font-weight: bold;">OPÇÃO 1: CRIAR SALA (Você é o Host - Player 1)</label>
+          <div style="display: flex; flex-direction: column; gap: 4px; margin: 8px 0;">
+            <label for="customRoomInput" style="font-size: 11px; color: var(--text-muted);">🏠 Nome Fixo / "Nosso Cantinho" (Opcional):</label>
+            <input type="text" class="input-text" id="customRoomInput" placeholder="Ex: hugo-amor (deixe vazio para aleatório)" maxlength="20" style="padding: 7px 10px; font-size: 12px;">
+          </div>
+          <button class="btn btn-snes-primary" id="btnStartHost" style="width: 100%; justify-content: center; padding: 10px;">
+            ⚡ GERAR LINK DA SALA
+          </button>
+
+          <div class="share-link-box" id="hostBox" style="display: none; margin-top: 8px;">
+            <label>Envie este link para ela:</label>
+            <input type="text" class="input-text" id="inviteLink" readonly style="margin: 6px 0;">
+            <button class="btn btn-snes-primary" id="btnCopyLink" style="align-self: flex-end;">
+              📋 Copiar Link
+            </button>
+          </div>
+        </div>
+
+        <!-- Client section -->
+        <div class="input-group" style="background: #14171d; padding: 14px; border-radius: 8px; border: 1px solid var(--snes-border); margin-top: 12px;">
+          <label style="color: var(--snes-yellow); font-weight: bold;">OPÇÃO 2: ENTRAR EM SALA (Ela criou a sala - Player 2)</label>
+          <div class="input-row" style="margin-top: 8px; display: flex; gap: 8px;">
+            <input type="text" class="input-text" id="joinCodeInput" placeholder="Cole o Link ou ID da sala aqui..." style="flex: 1;">
+            <button class="btn btn-snes-primary" id="btnConnectClient">Entrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Controles Xbox 360 para Super Nintendo -->
+  <div class="modal-backdrop" id="controlsModal">
+    <div class="modal-card" style="width: 660px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🎮 CONTROLE XBOX 360 & TECLADO (SNES)</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); font-size: 12px;">
+          Plugue seu joystick de <strong>Xbox 360</strong>. O Super Nintendo possui 4 botões frontais (A, B, X, Y) e 2 botões de ombro (L, R).
+        </p>
+
+        <table class="controls-table">
+          <thead>
+            <tr>
+              <th>BOTÃO SNES</th>
+              <th>XBOX 360</th>
+              <th>TECLADO (P1)</th>
+              <th>TECLADO (P2)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge-snes-b">B (Pular)</span></td>
+              <td><span class="xbox-btn xbox-a">A</span> (Verde)</td>
+              <td><kbd>J</kbd></td>
+              <td><kbd>Numpad 1</kbd> / <kbd>Z</kbd></td>
+            </tr>
+            <tr>
+              <td><span class="badge-snes-a">A (Girar / Especial)</span></td>
+              <td><span class="xbox-btn xbox-b">B</span> (Vermelho)</td>
+              <td><kbd>K</kbd></td>
+              <td><kbd>Numpad 2</kbd> / <kbd>X</kbd></td>
+            </tr>
+            <tr>
+              <td><span class="badge-snes-y">Y (Correr / Atacar)</span></td>
+              <td><span class="xbox-btn xbox-x">X</span> (Azul)</td>
+              <td><kbd>U</kbd></td>
+              <td><kbd>Numpad 4</kbd></td>
+            </tr>
+            <tr>
+              <td><span class="badge-snes-x">X (Ação Superior)</span></td>
+              <td><span class="xbox-btn xbox-y">Y</span> (Amarelo)</td>
+              <td><kbd>I</kbd></td>
+              <td><kbd>Numpad 5</kbd></td>
+            </tr>
+            <tr>
+              <td><span class="badge-snes-l">L (Ombro Esq.)</span></td>
+              <td><span class="xbox-btn xbox-shoulder">LT</span> (Gatilho Esq.)</td>
+              <td><kbd>Q</kbd></td>
+              <td><kbd>Numpad 7</kbd></td>
+            </tr>
+            <tr>
+              <td><span class="badge-snes-r">R (Ombro Dir.)</span></td>
+              <td><span class="xbox-btn xbox-shoulder">RT</span> (Gatilho Dir.)</td>
+              <td><kbd>E</kbd></td>
+              <td><kbd>Numpad 8</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>SAVE STATE 💾</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">LB</span> (Ombro Esq.)</td>
+              <td colspan="2">Botão na barra inferior</td>
+            </tr>
+            <tr>
+              <td><strong>LOAD STATE 📂</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">RB</span> (Ombro Dir.)</td>
+              <td colspan="2">Botão na barra inferior</td>
+            </tr>
+            <tr>
+              <td><strong>REBOBINAR (30s) ⏪</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">L3</span> (Analógico Esq.)</td>
+              <td colspan="2"><kbd>Backspace</kbd> ou <kbd>R</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>PASSA O CONTROLE 🤝</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">R3</span> (Analógico Dir.)</td>
+              <td colspan="2"><kbd>C</kbd></td>
+            </tr>
+            <tr>
+              <td><strong>DIRECIONAIS</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">D-Pad</span> / <strong>Analógico Esq.</strong></td>
+              <td><kbd>W,A,S,D</kbd></td>
+              <td>Setas do Teclado</td>
+            </tr>
+            <tr>
+              <td><strong>SELECT / START</strong></td>
+              <td><span class="xbox-btn xbox-shoulder">BACK</span> / <span class="xbox-btn xbox-shoulder">START</span></td>
+              <td><kbd>Shift</kbd> / <kbd>Enter</kbd></td>
+              <td><kbd>Numpad 0</kbd> / <kbd>Enter</kbd></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Core Scripts -->
+  <script src="peerjs.min.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/reactions.js"></script>
+  <script src="js/clip-recorder.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/nostalgist.umd.js"></script>
+  <script src="js/snes-emulator.js"></script>
+  <script src="js/snes-app.js"></script>
+</body>
+</html>

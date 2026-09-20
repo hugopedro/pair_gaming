@@ -37,10 +37,12 @@
     </div>
 
     <div class="nav-actions">
-      <!-- Switcher to Master System -->
-      <a href="mastersystem.html" class="btn btn-sega" title="Abrir emulador do Sega Master System">
-        <span>🕹️</span> <span>Master System</span>
-      </a>
+      <!-- Console Switcher -->
+      <div class="console-switcher">
+        <a href="index.html" class="btn-console btn-nes active" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
+        <a href="mastersystem.html" class="btn-console btn-sega" title="Emulador Sega Master System"><span>🔵</span> <span>Master System</span></a>
+        <a href="snes.html" class="btn-console btn-snes" title="Emulador Super Nintendo"><span>🟣</span> <span>SNES</span></a>
+      </div>
 
       <input type="file" id="romInput" accept=".nes" style="display: none;">
       <button class="btn btn-primary" id="btnLoadRom" title="Carregar arquivo .nes do seu computador">

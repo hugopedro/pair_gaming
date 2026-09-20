@@ -37,10 +37,12 @@
     </div>
 
     <div class="nav-actions">
-      <!-- Fast Switcher to NES -->
-      <a href="index.html" class="btn btn-nes-nav" title="Mudar para o emulador de Nintendinho (NES)">
-        <span>🎮</span> <span>Nintendinho (NES)</span>
-      </a>
+      <!-- Console Switcher -->
+      <div class="console-switcher">
+        <a href="index.html" class="btn-console btn-nes" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
+        <a href="mastersystem.html" class="btn-console btn-sega active" title="Emulador Sega Master System"><span>🔵</span> <span>Master System</span></a>
+        <a href="snes.html" class="btn-console btn-snes" title="Emulador Super Nintendo"><span>🟣</span> <span>SNES</span></a>
+      </div>
 
       <input type="file" id="romInput" accept=".sms,.bin" style="display: none;">
       <button class="btn btn-sega-primary" id="btnLoadRom" title="Carregar arquivo .sms ou .bin do seu computador">

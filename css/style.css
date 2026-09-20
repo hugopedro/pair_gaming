@@ -122,6 +122,59 @@ html, body {
   gap: 8px;
 }
 
+/* Console Switcher Navigation */
+.console-switcher {
+  display: inline-flex;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 3px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-console {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  color: #a0aec0;
+  transition: all 0.2s ease;
+}
+
+.btn-console:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-console.active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  font-weight: 800;
+}
+
+.btn-console.btn-nes.active {
+  background: rgba(230, 0, 18, 0.3);
+  border-color: #e60012;
+  box-shadow: 0 0 8px rgba(230, 0, 18, 0.5);
+}
+
+.btn-console.btn-sega.active {
+  background: rgba(0, 102, 204, 0.3);
+  border-color: #0066cc;
+  box-shadow: 0 0 8px rgba(0, 102, 204, 0.5);
+}
+
+.btn-console.btn-snes.active {
+  background: rgba(121, 82, 144, 0.4);
+  border-color: #a47bbd;
+  box-shadow: 0 0 8px rgba(164, 123, 189, 0.5);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

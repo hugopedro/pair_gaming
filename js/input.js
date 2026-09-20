@@ -4,40 +4,77 @@
  */
 
 class InputManager {
-  constructor(onButtonEvent, onGamepadStatusChange = null) {
+  constructor(onButtonEvent, onGamepadStatusChange = null, options = {}) {
     this.onButtonEvent = onButtonEvent; // Callback: (playerIdx, buttonName, isDown) => {}
     this.onGamepadStatusChange = onGamepadStatusChange; // Callback: (playerIdx, gamepadId, isConnected) => {}
+    this.system = options.system || 'nes'; // 'nes' | 'sms' | 'snes'
 
     // Active key bindings
-    this.keyMapP1 = {
-      KeyW: 'BUTTON_UP',
-      KeyS: 'BUTTON_DOWN',
-      KeyA: 'BUTTON_LEFT',
-      KeyD: 'BUTTON_RIGHT',
-      KeyJ: 'BUTTON_B',
-      KeyK: 'BUTTON_A',
-      KeyU: 'BUTTON_TURBO_B',
-      KeyI: 'BUTTON_TURBO_A',
-      ShiftLeft: 'BUTTON_SELECT',
-      Tab: 'BUTTON_SELECT',
-      Enter: 'BUTTON_START',
-      Space: 'BUTTON_START'
-    };
+    if (this.system === 'snes') {
+      this.keyMapP1 = {
+        KeyW: 'BUTTON_UP',
+        KeyS: 'BUTTON_DOWN',
+        KeyA: 'BUTTON_LEFT',
+        KeyD: 'BUTTON_RIGHT',
+        KeyJ: 'BUTTON_B',
+        KeyK: 'BUTTON_A',
+        KeyU: 'BUTTON_Y',
+        KeyI: 'BUTTON_X',
+        KeyQ: 'BUTTON_L',
+        KeyE: 'BUTTON_R',
+        ShiftLeft: 'BUTTON_SELECT',
+        Tab: 'BUTTON_SELECT',
+        Enter: 'BUTTON_START',
+        Space: 'BUTTON_START'
+      };
 
-    this.keyMapP2 = {
-      ArrowUp: 'BUTTON_UP',
-      ArrowDown: 'BUTTON_DOWN',
-      ArrowLeft: 'BUTTON_LEFT',
-      ArrowRight: 'BUTTON_RIGHT',
-      Numpad1: 'BUTTON_B',
-      KeyZ: 'BUTTON_B',
-      Numpad2: 'BUTTON_A',
-      KeyX: 'BUTTON_A',
-      Numpad4: 'BUTTON_TURBO_B',
-      Numpad5: 'BUTTON_TURBO_A',
-      Numpad0: 'BUTTON_SELECT',
-      NumpadEnter: 'BUTTON_START'
-    };
+      this.keyMapP2 = {
+        ArrowUp: 'BUTTON_UP',
+        ArrowDown: 'BUTTON_DOWN',
+        ArrowLeft: 'BUTTON_LEFT',
+        ArrowRight: 'BUTTON_RIGHT',
+        Numpad1: 'BUTTON_B',
+        KeyZ: 'BUTTON_B',
+        Numpad2: 'BUTTON_A',
+        KeyX: 'BUTTON_A',
+        Numpad4: 'BUTTON_Y',
+        Numpad5: 'BUTTON_X',
+        Numpad7: 'BUTTON_L',
+        Numpad8: 'BUTTON_R',
+        Numpad0: 'BUTTON_SELECT',
+        NumpadEnter: 'BUTTON_START'
+      };
+    } else {
+      this.keyMapP1 = {
+        KeyW: 'BUTTON_UP',
+        KeyS: 'BUTTON_DOWN',
+        KeyA: 'BUTTON_LEFT',
+        KeyD: 'BUTTON_RIGHT',
+        KeyJ: 'BUTTON_B',
+        KeyK: 'BUTTON_A',
+        KeyU: 'BUTTON_TURBO_B',
+        KeyI: 'BUTTON_TURBO_A',
+        ShiftLeft: 'BUTTON_SELECT',
+        Tab: 'BUTTON_SELECT',
+        Enter: 'BUTTON_START',
+        Space: 'BUTTON_START'
+      };
+
+      this.keyMapP2 = {
+        ArrowUp: 'BUTTON_UP',
+        ArrowDown: 'BUTTON_DOWN',
+        ArrowLeft: 'BUTTON_LEFT',
+        ArrowRight: 'BUTTON_RIGHT',
+        Numpad1: 'BUTTON_B',
+        KeyZ: 'BUTTON_B',
+        Numpad2: 'BUTTON_A',
+        KeyX: 'BUTTON_A',
+        Numpad4: 'BUTTON_TURBO_B',
+        Numpad5: 'BUTTON_TURBO_A',
+        Numpad0: 'BUTTON_SELECT',
+        NumpadEnter: 'BUTTON_START'
+      };
+    }
 
     // Swap role: if true, local controls act as Player 2 instead of Player 1
     this.isSwapped = false;
@@ -208,18 +245,41 @@ class InputManager {
       const isLbPressed = Boolean(gp.buttons[4]?.pressed);
       const isRbPressed = Boolean(gp.buttons[5]?.pressed);
 
-      const buttonsState = {
-        BUTTON_A: Boolean(gp.buttons[0]?.pressed || gp.buttons[1]?.pressed), // A (Green) or B (Red)
-        BUTTON_B: Boolean(gp.buttons[2]?.pressed || gp.buttons[3]?.pressed), // X (Blue) or Y (Yellow)
-        BUTTON_TURBO_A: playerNum === 1 ? isRtPressed : Boolean(isRbPressed || isRtPressed), // RT for P1 (RB is Load State)
-        BUTTON_TURBO_B: playerNum === 1 ? isLtPressed : Boolean(isLbPressed || isLtPressed), // LT for P1 (LB is Save State)
-        BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
-        BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
-        BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
-        BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
-        BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
-        BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
-      };
+      let buttonsState = {};
+      if (this.system === 'snes') {
+        buttonsState = {
+          BUTTON_B: Boolean(gp.buttons[0]?.pressed), // Xbox A -> SNES B (Bottom)
+          BUTTON_A: Boolean(gp.buttons[1]?.pressed), // Xbox B -> SNES A (Right)
+          BUTTON_Y: Boolean(gp.buttons[2]?.pressed), // Xbox X -> SNES Y (Left)
+          BUTTON_X: Boolean(gp.buttons[3]?.pressed), // Xbox Y -> SNES X (Top)
+          BUTTON_L: isLtPressed,                     // Xbox LT -> SNES L
+          BUTTON_R: isRtPressed,                     // Xbox RT -> SNES R
+          BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
+          BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
+          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
+          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
+          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
+          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
+        };
+        // For Player 2 on SNES, also allow LB/RB as L/R
+        if (playerNum !== 1) {
+          if (isLbPressed) buttonsState.BUTTON_L = true;
+          if (isRbPressed) buttonsState.BUTTON_R = true;
+        }
+      } else {
+        buttonsState = {
+          BUTTON_A: Boolean(gp.buttons[0]?.pressed || gp.buttons[1]?.pressed), // A (Green) or B (Red)
+          BUTTON_B: Boolean(gp.buttons[2]?.pressed || gp.buttons[3]?.pressed), // X (Blue) or Y (Yellow)
+          BUTTON_TURBO_A: playerNum === 1 ? isRtPressed : Boolean(isRbPressed || isRtPressed), // RT for P1 (RB is Load State)
+          BUTTON_TURBO_B: playerNum === 1 ? isLtPressed : Boolean(isLbPressed || isLtPressed), // LT for P1 (LB is Save State)
+          BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
+          BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
+          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
+          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
+          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
+          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
+        };
+      }
 
       // Player 1 dedicated quick save / load state / rewind / co-pilot triggers on controller
       if (playerNum === 1) {
