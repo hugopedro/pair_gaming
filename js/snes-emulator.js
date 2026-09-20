@@ -347,13 +347,11 @@ class SnesEmulator {
         return origGetContext(type, attrs);
       };
 
-      // 3. Initialize Canvas 2D on the visible display canvas
-      this._initScaler();
-      this.canvas.width = 1024;
-      this.canvas.height = 896;
+      // 3. Initialize Canvas 2D on the visible display canvas (Pixel Art Crisp)
+      this.canvas.width = 512;
+      this.canvas.height = 448;
       this.ctx = this.canvas.getContext('2d', { alpha: false });
-      this.ctx.imageSmoothingEnabled = true;
-      this.ctx.imageSmoothingQuality = 'high';
+      this.ctx.imageSmoothingEnabled = false;
 
       // 4. Launch Nostalgist on the HIDDEN WebGL canvas (256×224 buffer = tiny)
       const launchOptions = {
@@ -408,7 +406,7 @@ class SnesEmulator {
 
       this.nostalgist = await NostalgistClass.launch(launchOptions);
 
-      // 5. Start render loop: copy frames WebGL → Canvas 2D (exactly like NES)
+      // 5. Start render loop: copy frames WebGL → Canvas 2D (crisp pixel-perfect)
       this._renderLoopRunning = true;
       this._startRenderLoop();
 
@@ -420,8 +418,7 @@ class SnesEmulator {
             if (width > 0 && height > 0 && this.ctx) {
               this.canvas.width = Math.round(width * (window.devicePixelRatio || 1));
               this.canvas.height = Math.round(height * (window.devicePixelRatio || 1));
-              this.ctx.imageSmoothingEnabled = true;
-              this.ctx.imageSmoothingQuality = 'high';
+              this.ctx.imageSmoothingEnabled = false;
             }
           }
         });
@@ -452,10 +449,8 @@ class SnesEmulator {
     }
   }
 
-  // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D
+  // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D (Pixel Art Nítido)
   _startRenderLoop() {
-    let gl = null;
-
     const loop = () => {
       if (!this._renderLoopRunning) return;
       this._rafId = requestAnimationFrame(loop);
@@ -464,39 +459,10 @@ class SnesEmulator {
       if (this._webglCanvas.width === 0 || this._webglCanvas.height === 0) return;
       if (this.canvas.width === 0 || this.canvas.height === 0) return;
 
-      if (!gl) {
-        gl = this._webglCanvas.getContext('webgl') || this._webglCanvas.getContext('webgl2');
-      }
-
-      if (this.scaler && gl && this._pixelBuffer) {
-        try {
-          // 1. Read 256x224 raw pixels from WebGL buffer
-          gl.readPixels(0, 0, 256, 224, gl.RGBA, gl.UNSIGNED_BYTE, this._pixelBuffer);
-
-          // 2. Scale with xBRZ 4x (256x224 -> 1024x896) via WebAssembly (CPU ~0.6ms)
-          const scaled = this.scaler.scale(this._pixelBuffer);
-          this.xbrzImageData.data.set(scaled);
-          this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
-
-          // 3. WebGL readPixels is vertically inverted (OpenGL origin is bottom-left).
-          // Flip vertically via GPU hardware transform in drawImage:
-          this.ctx.save();
-          this.ctx.translate(0, this.canvas.height);
-          this.ctx.scale(1, -1);
-          this.ctx.drawImage(
-            this.xbrzCanvas,
-            0, 0, 1024, 896,
-            0, 0, this.canvas.width, this.canvas.height
-          );
-          this.ctx.restore();
-          return;
-        } catch (_) {
-          // Fallback to direct drawImage if anything fails
-        }
-      }
+      this.ctx.imageSmoothingEnabled = false;
 
       try {
-        // Fallback: direct drawImage from WebGL canvas → Canvas 2D
+        // Direct drawImage: browser GPU compositor blits texture with zero shader load
         this.ctx.drawImage(
           this._webglCanvas,
           0, 0, this._webglCanvas.width, this._webglCanvas.height,
