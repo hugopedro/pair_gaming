@@ -632,4 +632,168 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(buffer => loadRomFromArrayBuffer(buffer, 'Pong (2 Players)'))
       .catch(() => {});
   }
+
+  // 10. Retro Context Menu with Picture-in-Picture & Copy Image
+  let pipVideo = null;
+
+  async function togglePictureInPicture() {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+
+      if (isPlayer2Mode && remoteVideo) {
+        if (remoteVideo.readyState >= 2) {
+          await remoteVideo.requestPictureInPicture();
+          showToast('📺 Picture-in-Picture Ativado!');
+        } else {
+          showToast('⚠️ Aguarde a transmissão iniciar para abrir PiP.');
+        }
+        return;
+      }
+
+      if (!pipVideo) {
+        pipVideo = document.createElement('video');
+        pipVideo.muted = true;
+        pipVideo.playsInline = true;
+        pipVideo.style.position = 'fixed';
+        pipVideo.style.top = '-9999px';
+        pipVideo.style.left = '-9999px';
+        pipVideo.style.width = '1px';
+        pipVideo.style.height = '1px';
+        pipVideo.style.opacity = '0';
+        pipVideo.style.pointerEvents = 'none';
+        document.body.appendChild(pipVideo);
+      }
+
+      const stream = canvas.captureStream ? canvas.captureStream(60) : null;
+      if (!stream) {
+        showToast('⚠️ Picture-in-Picture não suportado neste navegador.');
+        return;
+      }
+      pipVideo.srcObject = stream;
+      await pipVideo.play();
+      await pipVideo.requestPictureInPicture();
+      showToast('📺 Picture-in-Picture Ativado!');
+    } catch (err) {
+      console.warn('Erro ao abrir Picture-in-Picture:', err);
+      showToast('⚠️ Não foi possível abrir Picture-in-Picture.');
+    }
+  }
+
+  async function copyImageToClipboard() {
+    try {
+      if (isPlayer2Mode && remoteVideo) {
+        const tmpCanvas = document.createElement('canvas');
+        tmpCanvas.width = remoteVideo.videoWidth || 1280;
+        tmpCanvas.height = remoteVideo.videoHeight || 720;
+        const tmpCtx = tmpCanvas.getContext('2d');
+        tmpCtx.drawImage(remoteVideo, 0, 0, tmpCanvas.width, tmpCanvas.height);
+        tmpCanvas.toBlob(async (blob) => {
+          if (!blob) return;
+          try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            showToast('📋 Screenshot copiada para a área de transferência!');
+          } catch (_) {
+            showToast('⚠️ Permissão negada para copiar imagem.');
+          }
+        });
+        return;
+      }
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          showToast('⚠️ Não foi possível capturar a imagem.');
+          return;
+        }
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+          showToast('📋 Screenshot copiada para a área de transferência!');
+        } catch (_) {
+          showToast('⚠️ Permissão negada para copiar imagem.');
+        }
+      });
+    } catch (err) {
+      console.warn('Erro ao copiar imagem:', err);
+      showToast('⚠️ Erro ao copiar imagem.');
+    }
+  }
+
+  const cabinet = document.querySelector('.screen-cabinet');
+  let contextMenu = document.getElementById('retroContextMenu');
+  if (!contextMenu) {
+    contextMenu = document.createElement('div');
+    contextMenu.id = 'retroContextMenu';
+    contextMenu.className = 'retro-context-menu';
+    contextMenu.style.display = 'none';
+    contextMenu.innerHTML = `
+      <div class="retro-context-menu-item" id="menuItemPip">
+        <span class="menu-icon">📺</span>
+        <span>Picture-in-Picture</span>
+      </div>
+      <div class="retro-context-menu-item" id="menuItemCopy">
+        <span class="menu-icon">📋</span>
+        <span>Copiar Imagem</span>
+      </div>
+      <div class="retro-context-menu-divider"></div>
+      <div class="retro-context-menu-item" id="menuItemFullscreen">
+        <span class="menu-icon">⛶</span>
+        <span>Tela Cheia</span>
+      </div>
+    `;
+    document.body.appendChild(contextMenu);
+
+    contextMenu.querySelector('#menuItemPip').addEventListener('click', () => {
+      closeContextMenu();
+      togglePictureInPicture();
+    });
+
+    contextMenu.querySelector('#menuItemCopy').addEventListener('click', () => {
+      closeContextMenu();
+      copyImageToClipboard();
+    });
+
+    contextMenu.querySelector('#menuItemFullscreen').addEventListener('click', () => {
+      closeContextMenu();
+      if (!document.fullscreenElement) {
+        if (cabinet.requestFullscreen) cabinet.requestFullscreen();
+        else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+  }
+
+  function closeContextMenu() {
+    if (contextMenu) contextMenu.style.display = 'none';
+  }
+
+  window.addEventListener('click', () => closeContextMenu());
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') closeContextMenu();
+  });
+
+  if (cabinet) {
+    cabinet.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const menuWidth = 230;
+      const menuHeight = 130;
+      let x = e.clientX;
+      let y = e.clientY;
+
+      if (x + menuWidth > window.innerWidth) {
+        x = window.innerWidth - menuWidth - 8;
+      }
+      if (y + menuHeight > window.innerHeight) {
+        y = window.innerHeight - menuHeight - 8;
+      }
+
+      contextMenu.style.left = `${Math.max(8, x)}px`;
+      contextMenu.style.top = `${Math.max(8, y)}px`;
+      contextMenu.style.display = 'flex';
+    });
+  }
 });
