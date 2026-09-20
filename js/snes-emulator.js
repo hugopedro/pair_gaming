@@ -279,7 +279,7 @@ class SnesEmulator {
           fileContent: blob
         },
         element: this.canvas,
-        size: { width: 1536, height: 1344 },
+        size: { width: 1280, height: 720 },
         shader: '6xbrz',
         resolveShader: async () => {
           try {
@@ -287,7 +287,7 @@ class SnesEmulator {
             if (res.ok) {
               return [
                 'shaders/xbrz/6xbrz.glslp',
-                'shaders/xbrz/shaders/6xbrz.glsl'
+                'shaders/xbrz/shaders/xbrz-freescale.glsl'
               ];
             }
           } catch (_) {}
@@ -303,10 +303,12 @@ class SnesEmulator {
           objectFit: 'fill'
         },
         retroarchConfig: {
-          video_vsync: 'true',
+          video_vsync: 'false',
           video_threaded: 'true',
           video_hard_sync: 'false',
           video_smooth: 'false',
+          video_frame_delay: '0',
+          video_max_swapchain_images: '3',
           savestate_thumbnail_enable: 'false',
           savestate_auto_save: 'false',
           savestate_auto_load: 'false',
