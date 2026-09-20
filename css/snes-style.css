@@ -162,3 +162,93 @@ body {
 .badge-snes-y { background: var(--snes-green); color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
 .badge-snes-l { background: #4a5568; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
 .badge-snes-r { background: #4a5568; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+
+/* Ensure canvas and remoteVideo fill the cabinet perfectly with zero black borders */
+.screen-cabinet canvas,
+#snesCanvas,
+canvas#canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: block !important;
+  object-fit: fill !important;
+  background: #000 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+#remoteVideo {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  display: none !important;
+  object-fit: fill !important;
+  background: #000 !important;
+  border: none !important;
+  outline: none !important;
+}
+
+body.player2-mode .screen-cabinet canvas,
+body.player2-mode #snesCanvas,
+body.player2-mode canvas#canvas {
+  display: none !important;
+}
+
+body.player2-mode #remoteVideo {
+  display: block !important;
+}
+
+/* SNES Aspect Ratio Rules */
+body.ratio-16-9 .screen-cabinet,
+body.ratio-16-9 #remoteVideo {
+  aspect-ratio: 16 / 9 !important;
+}
+
+body.ratio-4-3 .screen-cabinet,
+body.ratio-4-3 #remoteVideo {
+  aspect-ratio: 4 / 3 !important;
+}
+
+body.ratio-16-10 .screen-cabinet,
+body.ratio-16-10 #remoteVideo {
+  aspect-ratio: 16 / 10 !important;
+}
+
+body.ratio-superwide .screen-cabinet,
+body.ratio-superwide #remoteVideo {
+  aspect-ratio: 16 / 9 !important;
+}
+
+/* Video Filters for SNES */
+.screen-cabinet canvas.filter-crisp,
+#snesCanvas.filter-crisp,
+canvas#canvas.filter-crisp,
+#remoteVideo.filter-crisp {
+  image-rendering: pixelated !important;
+  image-rendering: crisp-edges !important;
+}
+
+.screen-cabinet canvas.filter-smooth,
+#snesCanvas.filter-smooth,
+canvas#canvas.filter-smooth,
+#remoteVideo.filter-smooth {
+  image-rendering: auto !important;
+}
+
+/* CRT Scanlines Filter Overlay */
+.screen-cabinet.filter-crt::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: 
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 10;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+}

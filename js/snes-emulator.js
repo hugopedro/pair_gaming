@@ -279,6 +279,11 @@ class SnesEmulator {
           fileContent: blob
         },
         element: this.canvas,
+        style: {
+          width: '100%',
+          height: '100%',
+          objectFit: 'fill'
+        },
         retroarchConfig: {
           // Disable default keyboard bindings so our InputManager handles all keys and gamepads cleanly
           input_player1_up: 'nul',

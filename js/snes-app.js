@@ -366,6 +366,49 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Proporção de Tela: ${aspectRatios[aspectOrder[nextIdx]]}`);
   });
 
+  // Video Filter System (Suave HD, Pixel Art Nítido, CRT Scanlines)
+  const filterLabels = {
+    'smooth': 'Filtro: Suave HD ✨',
+    'crisp': 'Filtro: Pixel Art 👾',
+    'crt': 'Filtro: CRT Scanlines 📺'
+  };
+  const filterOrder = ['smooth', 'crisp', 'crt'];
+  let currentFilter = localStorage.getItem('duplinha_snes_filter') || 'smooth';
+
+  function updateFilterUI(filter) {
+    currentFilter = filter;
+    localStorage.setItem('duplinha_snes_filter', filter);
+    const filterLabel = document.getElementById('filterLabel');
+    if (filterLabel) filterLabel.textContent = filterLabels[filter] || 'Filtro: Suave HD ✨';
+
+    const cabinet = document.querySelector('.screen-cabinet');
+    if (cabinet) {
+      cabinet.classList.remove('filter-crt');
+      if (filter === 'crt') cabinet.classList.add('filter-crt');
+    }
+
+    const activeCanvas = document.querySelector('.screen-cabinet canvas') || canvas;
+    if (activeCanvas) {
+      activeCanvas.classList.remove('filter-smooth', 'filter-crisp');
+      activeCanvas.classList.add(`filter-${filter === 'crt' ? 'crisp' : filter}`);
+    }
+    if (remoteVideo) {
+      remoteVideo.classList.remove('filter-smooth', 'filter-crisp');
+      remoteVideo.classList.add(`filter-${filter === 'crt' ? 'crisp' : filter}`);
+    }
+  }
+
+  updateFilterUI(currentFilter);
+
+  const btnFilter = document.getElementById('btnFilter');
+  if (btnFilter) {
+    btnFilter.addEventListener('click', () => {
+      const nextIdx = (filterOrder.indexOf(currentFilter) + 1) % filterOrder.length;
+      updateFilterUI(filterOrder[nextIdx]);
+      showToast(filterLabels[filterOrder[nextIdx]]);
+    });
+  }
+
   document.getElementById('btnFullscreen').addEventListener('click', () => {
     const cabinet = document.querySelector('.screen-cabinet');
     if (!document.fullscreenElement) {
