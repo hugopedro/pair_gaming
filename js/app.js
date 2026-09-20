@@ -214,14 +214,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const inGameChat = new InGameChat({
     cabinet: document.querySelector('.screen-cabinet'),
     multiplayer: multiplayer,
-    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Namorada' : 'Hugo'),
-    getRemoteDefaultName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada')
+    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Sandy' : 'Hugo'),
+    getRemoteDefaultName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Sandy')
   });
   window.inGameChat = inGameChat;
 
   multiplayer.onChatMessage = (sender, text) => {
     inGameChat.addMessage({
-      sender: sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada'),
+      sender: sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Sandy'),
       text: text,
       isMine: false
     });
@@ -305,12 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
     cabinet: document.querySelector('.screen-cabinet'),
     multiplayer: multiplayer,
     inputManager: input,
-    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Namorada' : 'Hugo')
+    getLocalSenderName: () => (isPlayer2Mode || multiplayer.mode === 'CLIENT' ? 'Sandy' : 'Hugo')
   });
   window.reactions = reactions;
 
   multiplayer.onReaction = (reactionId, sender) => {
-    reactions.trigger(reactionId, false, sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Namorada'));
+    reactions.trigger(reactionId, false, sender || (multiplayer.mode === 'CLIENT' ? 'Hugo' : 'Sandy'));
   };
 
   // Initialize Clip Recorder (10s rolling buffer)
@@ -511,16 +511,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (remoteControlsP1) {
       swapBtns.forEach(btn => btn.classList.add('active'));
-      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P1 👑');
+      swapLabels.forEach(lbl => lbl.textContent = 'Sandy controla: P1 👑');
       swapIcons.forEach(icn => icn.textContent = '👑');
-      if (p1Device) p1Device.textContent = '👩 Namorada (P1)';
-      if (p2Device) p2Device.textContent = '🎮 Você (Host / P2)';
+      if (p1Device) p1Device.textContent = '👩 Sandy (P1)';
+      if (p2Device) p2Device.textContent = '🎮 Hugo (Host / P2)';
     } else {
       swapBtns.forEach(btn => btn.classList.remove('active'));
-      swapLabels.forEach(lbl => lbl.textContent = 'Ela controla: P2 🎮');
+      swapLabels.forEach(lbl => lbl.textContent = 'Sandy controla: P2 🎮');
       swapIcons.forEach(icn => icn.textContent = '🎮');
-      if (p1Device) p1Device.textContent = '🎮 Você (Host / P1)';
-      if (p2Device) p2Device.textContent = '👩 Namorada (P2)';
+      if (p1Device) p1Device.textContent = '🎮 Hugo (Host / P1)';
+      if (p2Device) p2Device.textContent = '👩 Sandy (P2)';
     }
   }
 
@@ -529,8 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
       remoteControlsP1 = !remoteControlsP1;
       updatePlayerRolesUI();
       showToast(remoteControlsP1 
-        ? '👑 Namorada agora controla o Player 1! (Você comanda o P2)' 
-        : '🎮 Modo Normal: Você comanda o Player 1 e ela o Player 2');
+        ? '👑 Sandy agora controla o Player 1! (Você comanda o P2)' 
+        : '🎮 Modo Normal: Hugo comanda o P1 e Sandy comanda o P2');
     });
   });
 
