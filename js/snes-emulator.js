@@ -37,7 +37,13 @@ if (OrigAudioContext && !window.__snesAudioHooked) {
 
 class SnesEmulator {
   constructor(canvasElement) {
+    // Display canvas (Canvas 2D) — what the user sees
     this.canvas = canvasElement;
+    this.ctx = null; // initialized in loadROM
+
+    // Hidden WebGL canvas for Nostalgist (tiny buffer, never shown to user)
+    this._webglCanvas = null;
+
     this.nostalgist = null;
 
     // Active aspect ratio mode: '16-9' | '4-3' | '16-10' | 'superwide'
@@ -53,6 +59,10 @@ class SnesEmulator {
     this.fps = 60;
     this.fpsTimer = performance.now();
     this.frameCount = 0;
+
+    // Render loop
+    this._renderLoopRunning = false;
+    this._rafId = null;
 
     // Rewind Ring Buffer (snapshots every 3s for up to 30s)
     this.rewindBuffer = [];
@@ -250,7 +260,12 @@ class SnesEmulator {
     this.currentRomData = romData;
     this.currentRomName = romName;
 
+    // Stop previous render loop and emulator
     this._renderLoopRunning = false;
+    if (this._rafId) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
     if (this.nostalgist) {
       try {
         await this.nostalgist.exit();
@@ -264,6 +279,11 @@ class SnesEmulator {
     }
     this.rewindBuffer = [];
 
+    // Clean up previous hidden WebGL canvas
+    if (this._webglCanvas && this._webglCanvas.parentNode) {
+      this._webglCanvas.parentNode.removeChild(this._webglCanvas);
+    }
+
     try {
       const ext = (originalFileName && originalFileName.match(/\.(sfc|smc|zip|bin)$/i))
         ? originalFileName.match(/\.(sfc|smc|zip|bin)$/i)[1].toLowerCase()
@@ -275,32 +295,63 @@ class SnesEmulator {
         throw new Error('Nostalgist.js não está carregado no navegador.');
       }
 
+      // === DUAL CANVAS ARCHITECTURE (imitating NES pipeline) ===
+
+      // 1. Create hidden WebGL canvas for Nostalgist (tiny 256×224 buffer)
+      this._webglCanvas = document.createElement('canvas');
+      this._webglCanvas.id = '_snesWebGL';
+      this._webglCanvas.width = 256;
+      this._webglCanvas.height = 224;
+      this._webglCanvas.style.cssText = `
+        position: absolute; top: 0; left: 0;
+        width: 1px; height: 1px;
+        opacity: 0.01;
+        pointer-events: none;
+        z-index: -1;
+      `;
+      // Insert into the same parent so it's in the DOM and composited
+      this.canvas.parentNode.insertBefore(this._webglCanvas, this.canvas);
+
+      // 2. Intercept getContext to force preserveDrawingBuffer on this canvas
+      const origGetContext = this._webglCanvas.getContext.bind(this._webglCanvas);
+      this._webglCanvas.getContext = function(type, attrs) {
+        if (type === 'webgl' || type === 'webgl2') {
+          attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+        }
+        return origGetContext(type, attrs);
+      };
+
+      // 3. Initialize Canvas 2D on the visible display canvas
+      this.canvas.width = 512;
+      this.canvas.height = 448;
+      this.ctx = this.canvas.getContext('2d', { alpha: false });
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = 'high';
+
+      // 4. Launch Nostalgist on the HIDDEN WebGL canvas (256×224 buffer = tiny)
       const launchOptions = {
         core: 'snes9x',
         rom: {
           fileName: fileName,
           fileContent: blob
         },
-        element: this.canvas,
-        // Zero shaders — browser CSS scaling (GPU texture sampler) é grátis em fullscreen
+        element: this._webglCanvas,
+        size: { width: 256, height: 224 },
         style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'fill',
-          imageRendering: 'auto'
+          width: '1px',
+          height: '1px'
         },
         retroarchConfig: {
           video_vsync: 'true',
           video_threaded: 'true',
           video_hard_sync: 'false',
-          video_smooth: 'true',
+          video_smooth: 'false',
           video_shader_enable: 'false',
           video_scale: '1',
           savestate_thumbnail_enable: 'false',
           savestate_auto_save: 'false',
           savestate_auto_load: 'false',
           rewind_enable: 'false',
-          // Disable default keyboard bindings so our InputManager handles all keys and gamepads cleanly
           input_player1_up: 'nul',
           input_player1_down: 'nul',
           input_player1_left: 'nul',
@@ -330,6 +381,26 @@ class SnesEmulator {
 
       this.nostalgist = await NostalgistClass.launch(launchOptions);
 
+      // 5. Start render loop: copy frames WebGL → Canvas 2D (exactly like NES)
+      this._renderLoopRunning = true;
+      this._startRenderLoop();
+
+      // 6. ResizeObserver to update display canvas buffer on resize/fullscreen
+      if (!this._resizeObserver) {
+        this._resizeObserver = new ResizeObserver((entries) => {
+          for (const entry of entries) {
+            const { width, height } = entry.contentRect;
+            if (width > 0 && height > 0 && this.ctx) {
+              this.canvas.width = Math.round(width * (window.devicePixelRatio || 1));
+              this.canvas.height = Math.round(height * (window.devicePixelRatio || 1));
+              this.ctx.imageSmoothingEnabled = true;
+              this.ctx.imageSmoothingQuality = 'high';
+            }
+          }
+        });
+        this._resizeObserver.observe(this.canvas);
+      }
+
       this.isRunning = true;
       this.isPaused = false;
 
@@ -352,6 +423,28 @@ class SnesEmulator {
       }
       return false;
     }
+  }
+
+  // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D
+  _startRenderLoop() {
+    const loop = () => {
+      if (!this._renderLoopRunning) return;
+      this._rafId = requestAnimationFrame(loop);
+
+      if (!this._webglCanvas || !this.ctx) return;
+      if (this._webglCanvas.width === 0 || this._webglCanvas.height === 0) return;
+      if (this.canvas.width === 0 || this.canvas.height === 0) return;
+
+      try {
+        // drawImage from WebGL canvas → Canvas 2D (bilinear upscale, free on GPU)
+        this.ctx.drawImage(
+          this._webglCanvas,
+          0, 0, this._webglCanvas.width, this._webglCanvas.height,
+          0, 0, this.canvas.width, this.canvas.height
+        );
+      } catch (_) {}
+    };
+    this._rafId = requestAnimationFrame(loop);
   }
 
   _startFPSMonitor() {
