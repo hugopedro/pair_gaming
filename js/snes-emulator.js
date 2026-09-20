@@ -104,6 +104,7 @@ class SnesEmulator {
         this.tempCanvas.width = 256;
         this.tempCanvas.height = 224;
         this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
+        this.tempCtx.imageSmoothingEnabled = false;
 
         // 1024x896 intermediate canvas for xBRZ 4x
         this.xbrzCanvas = document.createElement('canvas');
@@ -408,11 +409,18 @@ class SnesEmulator {
       // Insert into the same parent so it's in the DOM and composited
       this.canvas.parentNode.insertBefore(this._webglCanvas, this.canvas);
 
-      // 2. Intercept getContext to force preserveDrawingBuffer on this canvas
+      // 2. Intercept getContext to force preserveDrawingBuffer and crisp pixel-perfect attributes
       const origGetContext = this._webglCanvas.getContext.bind(this._webglCanvas);
       this._webglCanvas.getContext = function(type, attrs) {
         if (type === 'webgl' || type === 'webgl2') {
-          attrs = Object.assign({}, attrs || {}, { preserveDrawingBuffer: true });
+          attrs = Object.assign({}, attrs || {}, {
+            preserveDrawingBuffer: true,
+            antialias: false,
+            alpha: false,
+            premultipliedAlpha: false,
+            depth: false,
+            stencil: false
+          });
         }
         return origGetContext(type, attrs);
       };
@@ -440,6 +448,7 @@ class SnesEmulator {
           video_threaded: 'false',
           video_hard_sync: 'false',
           video_smooth: 'false',
+          video_crop_overscan: 'true',
           video_shader_enable: 'false',
           video_scale: '1',
           savestate_thumbnail_enable: 'false',
@@ -515,10 +524,17 @@ class SnesEmulator {
 
       if (this.scaler && this.tempCtx && this.xbrzCtx) {
         try {
-          // 1. Copy WebGL frame to 256x224 2D canvas (browser compositor, fast & reliable)
-          this.tempCtx.drawImage(this._webglCanvas, 0, 0, 256, 224);
+          // 1. Copy WebGL frame to 256x224 2D canvas with ZERO smoothing (pixel-perfect 1:1)
+          this.tempCtx.imageSmoothingEnabled = false;
+          const glW = this._webglCanvas.width || 256;
+          const glH = this._webglCanvas.height || 224;
+          this.tempCtx.drawImage(
+            this._webglCanvas,
+            0, 0, glW, glH,
+            0, 0, 256, 224
+          );
 
-          // 2. Read 256x224 pixels (willReadFrequently makes this sub-millisecond)
+          // 2. Read 256x224 raw pristine pixels (willReadFrequently makes this sub-millisecond)
           const imgData = this.tempCtx.getImageData(0, 0, 256, 224);
 
           // 3. Scale with xBRZ 4x (256x224 -> 1024x896) in WebAssembly CPU (~0.6ms)
