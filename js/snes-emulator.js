@@ -76,9 +76,35 @@ class SnesEmulator {
     this.savesDirHandle = null;
     this.memorySaveState = null;
 
+    // xBRZ Scaler (WebAssembly CPU - 256x224 -> 1024x896)
+    this.scaler = null;
+    this.xbrzCanvas = null;
+    this.xbrzCtx = null;
+    this.xbrzImageData = null;
+    this._pixelBuffer = null;
+    this._initScaler();
+
     // Callbacks
     this.onStatusChange = null;
     this.onFPSUpdate = null;
+  }
+
+  _initScaler() {
+    if (this.scaler) return;
+    const Xbrz = window.XbrzScaler;
+    if (Xbrz) {
+      try {
+        this.scaler = new Xbrz(256, 224, 4);
+        this.xbrzCanvas = document.createElement('canvas');
+        this.xbrzCanvas.width = 1024;
+        this.xbrzCanvas.height = 896;
+        this.xbrzCtx = this.xbrzCanvas.getContext('2d', { alpha: false });
+        this.xbrzImageData = this.xbrzCtx.createImageData(1024, 896);
+        this._pixelBuffer = new Uint8Array(256 * 224 * 4);
+      } catch (e) {
+        console.warn('Erro ao inicializar xBRZ Scaler SNES:', e);
+      }
+    }
   }
 
   setAspectRatio(ratio) {
@@ -322,8 +348,9 @@ class SnesEmulator {
       };
 
       // 3. Initialize Canvas 2D on the visible display canvas
-      this.canvas.width = 512;
-      this.canvas.height = 448;
+      this._initScaler();
+      this.canvas.width = 1024;
+      this.canvas.height = 896;
       this.ctx = this.canvas.getContext('2d', { alpha: false });
       this.ctx.imageSmoothingEnabled = true;
       this.ctx.imageSmoothingQuality = 'high';
@@ -427,6 +454,8 @@ class SnesEmulator {
 
   // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D
   _startRenderLoop() {
+    let gl = null;
+
     const loop = () => {
       if (!this._renderLoopRunning) return;
       this._rafId = requestAnimationFrame(loop);
@@ -435,8 +464,39 @@ class SnesEmulator {
       if (this._webglCanvas.width === 0 || this._webglCanvas.height === 0) return;
       if (this.canvas.width === 0 || this.canvas.height === 0) return;
 
+      if (!gl) {
+        gl = this._webglCanvas.getContext('webgl') || this._webglCanvas.getContext('webgl2');
+      }
+
+      if (this.scaler && gl && this._pixelBuffer) {
+        try {
+          // 1. Read 256x224 raw pixels from WebGL buffer
+          gl.readPixels(0, 0, 256, 224, gl.RGBA, gl.UNSIGNED_BYTE, this._pixelBuffer);
+
+          // 2. Scale with xBRZ 4x (256x224 -> 1024x896) via WebAssembly (CPU ~0.6ms)
+          const scaled = this.scaler.scale(this._pixelBuffer);
+          this.xbrzImageData.data.set(scaled);
+          this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
+
+          // 3. WebGL readPixels is vertically inverted (OpenGL origin is bottom-left).
+          // Flip vertically via GPU hardware transform in drawImage:
+          this.ctx.save();
+          this.ctx.translate(0, this.canvas.height);
+          this.ctx.scale(1, -1);
+          this.ctx.drawImage(
+            this.xbrzCanvas,
+            0, 0, 1024, 896,
+            0, 0, this.canvas.width, this.canvas.height
+          );
+          this.ctx.restore();
+          return;
+        } catch (_) {
+          // Fallback to direct drawImage if anything fails
+        }
+      }
+
       try {
-        // drawImage from WebGL canvas → Canvas 2D (bilinear upscale, free on GPU)
+        // Fallback: direct drawImage from WebGL canvas → Canvas 2D
         this.ctx.drawImage(
           this._webglCanvas,
           0, 0, this._webglCanvas.width, this._webglCanvas.height,
