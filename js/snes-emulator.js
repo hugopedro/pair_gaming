@@ -279,6 +279,7 @@ class SnesEmulator {
           fileContent: blob
         },
         element: this.canvas,
+        size: { width: 1536, height: 1344 },
         shader: '6xbrz',
         resolveShader: async () => {
           try {
@@ -303,6 +304,13 @@ class SnesEmulator {
         },
         retroarchConfig: {
           video_vsync: 'true',
+          video_threaded: 'true',
+          video_hard_sync: 'false',
+          video_smooth: 'false',
+          savestate_thumbnail_enable: 'false',
+          savestate_auto_save: 'false',
+          savestate_auto_load: 'false',
+          rewind_enable: 'false',
           // Disable default keyboard bindings so our InputManager handles all keys and gamepads cleanly
           input_player1_up: 'nul',
           input_player1_down: 'nul',
@@ -344,10 +352,11 @@ class SnesEmulator {
       this.isRunning = true;
       this.isPaused = false;
 
-      // Start automatic rewind buffer captures every 1 second
+      // Start automatic rewind buffer captures every 2 seconds (15 snapshots = 30s)
+      this.maxRewindStates = 15;
       this.rewindTimer = setInterval(() => {
         this._captureRewindState();
-      }, 1000);
+      }, 2000);
 
       // Start FPS monitor
       this._startFPSMonitor();
@@ -377,7 +386,8 @@ class SnesEmulator {
   }
 
   async _captureRewindState() {
-    if (!this.nostalgist || !this.isRunning || this.isPaused || this.isRewinding) return;
+    if (!this.nostalgist || !this.isRunning || this.isPaused || this.isRewinding || this._isCapturing) return;
+    this._isCapturing = true;
     try {
       const res = await this.nostalgist.saveState();
       if (res && res.state) {
@@ -387,6 +397,9 @@ class SnesEmulator {
         }
       }
     } catch (_) {}
+    finally {
+      this._isCapturing = false;
+    }
   }
 
   async rewind(seconds = 3) {
