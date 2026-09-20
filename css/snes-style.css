@@ -257,3 +257,15 @@ body.ratio-superwide #remoteVideo {
   width: 100vw !important;
   height: 100vh !important;
 }
+
+/* Canvas fullscreen: GPU bilinear texture sampling (zero shader cost) */
+:fullscreen #snesCanvas,
+:-webkit-full-screen #snesCanvas,
+:fullscreen canvas,
+:-webkit-full-screen canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: fill !important;
+  image-rendering: auto !important;
+  display: block !important;
+}

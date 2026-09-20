@@ -282,32 +282,20 @@ class SnesEmulator {
           fileContent: blob
         },
         element: this.canvas,
-        shader: 'xbr-lv2',
-        resolveShader: async () => {
-          try {
-            const res = await fetch('shaders/xbr/xbr-lv2.glslp');
-            if (res.ok) {
-              return [
-                'shaders/xbr/xbr-lv2.glslp',
-                'shaders/xbr/shaders/xbr-lv2.glsl'
-              ];
-            }
-          } catch (_) {}
-          return [
-            'https://cdn.jsdelivr.net/gh/libretro/glsl-shaders@468f67b6f6788e2719d1dd28dfb2c9b7c3db3cc7/xbr/xbr-lv2.glslp',
-            'https://cdn.jsdelivr.net/gh/libretro/glsl-shaders@468f67b6f6788e2719d1dd28dfb2c9b7c3db3cc7/xbr/shaders/xbr-lv2.glsl'
-          ];
-        },
+        // Zero shaders — browser CSS scaling (GPU texture sampler) é grátis em fullscreen
         style: {
           width: '100%',
           height: '100%',
-          objectFit: 'fill'
+          objectFit: 'fill',
+          imageRendering: 'auto'
         },
         retroarchConfig: {
           video_vsync: 'true',
           video_threaded: 'true',
           video_hard_sync: 'false',
-          video_smooth: 'false',
+          video_smooth: 'true',
+          video_shader_enable: 'false',
+          video_scale: '1',
           savestate_thumbnail_enable: 'false',
           savestate_auto_save: 'false',
           savestate_auto_load: 'false',
@@ -340,15 +328,7 @@ class SnesEmulator {
         }
       };
 
-      try {
-        this.nostalgist = await NostalgistClass.launch(launchOptions);
-      } catch (shaderErr) {
-        console.warn('Tentativa de iniciar com shader xbr-lv2 falhou, iniciando core limpo:', shaderErr);
-        const fallbackOptions = { ...launchOptions };
-        delete fallbackOptions.shader;
-        delete fallbackOptions.resolveShader;
-        this.nostalgist = await NostalgistClass.launch(fallbackOptions);
-      }
+      this.nostalgist = await NostalgistClass.launch(launchOptions);
 
       this.isRunning = true;
       this.isPaused = false;
