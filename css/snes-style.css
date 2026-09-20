@@ -258,14 +258,13 @@ body.ratio-superwide #remoteVideo {
   height: 100vh !important;
 }
 
-/* Canvas fullscreen: Pixel-perfect sharp rendering (zero blur, zero shader cost) */
+/* Canvas fullscreen: xBRZ 4x smooth rendering (zero GPU shader cost) */
 :fullscreen #snesCanvas,
 :-webkit-full-screen #snesCanvas {
   width: 100% !important;
   height: 100% !important;
   object-fit: contain !important;
-  image-rendering: pixelated !important;
-  image-rendering: crisp-edges !important;
+  image-rendering: auto !important;
   display: block !important;
 }
 
@@ -277,8 +276,7 @@ body.ratio-16-9:-webkit-full-screen #snesCanvas,
 }
 
 #snesCanvas {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
 }
 
 /* Hidden WebGL canvas for Nostalgist must never expand or block input */

@@ -95,12 +95,20 @@ class SnesEmulator {
     if (Xbrz) {
       try {
         this.scaler = new Xbrz(256, 224, 4);
+
+        // 256x224 temporary 2D canvas to capture frames without WebGL FBO issues
+        // willReadFrequently: true keeps buffer in CPU memory for sub-millisecond getImageData
+        this.tempCanvas = document.createElement('canvas');
+        this.tempCanvas.width = 256;
+        this.tempCanvas.height = 224;
+        this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
+
+        // 1024x896 intermediate canvas for xBRZ 4x
         this.xbrzCanvas = document.createElement('canvas');
         this.xbrzCanvas.width = 1024;
         this.xbrzCanvas.height = 896;
         this.xbrzCtx = this.xbrzCanvas.getContext('2d', { alpha: false });
         this.xbrzImageData = this.xbrzCtx.createImageData(1024, 896);
-        this._pixelBuffer = new Uint8Array(256 * 224 * 4);
       } catch (e) {
         console.warn('Erro ao inicializar xBRZ Scaler SNES:', e);
       }
@@ -347,11 +355,13 @@ class SnesEmulator {
         return origGetContext(type, attrs);
       };
 
-      // 3. Initialize Canvas 2D on the visible display canvas (Pixel Art Crisp)
-      this.canvas.width = 512;
-      this.canvas.height = 448;
+      // 3. Initialize Canvas 2D on the visible display canvas (xBRZ 4x)
+      this._initScaler();
+      this.canvas.width = 1024;
+      this.canvas.height = 896;
       this.ctx = this.canvas.getContext('2d', { alpha: false });
-      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.imageSmoothingEnabled = true;
+      this.ctx.imageSmoothingQuality = 'high';
 
       // 4. Launch Nostalgist on the HIDDEN WebGL canvas (256×224 buffer = tiny)
       const launchOptions = {
@@ -406,7 +416,7 @@ class SnesEmulator {
 
       this.nostalgist = await NostalgistClass.launch(launchOptions);
 
-      // 5. Start render loop: copy frames WebGL → Canvas 2D (crisp pixel-perfect)
+      // 5. Start render loop: copy frames WebGL → Canvas 2D via xBRZ 4x (WASM CPU)
       this._renderLoopRunning = true;
       this._startRenderLoop();
 
@@ -418,7 +428,8 @@ class SnesEmulator {
             if (width > 0 && height > 0 && this.ctx) {
               this.canvas.width = Math.round(width * (window.devicePixelRatio || 1));
               this.canvas.height = Math.round(height * (window.devicePixelRatio || 1));
-              this.ctx.imageSmoothingEnabled = false;
+              this.ctx.imageSmoothingEnabled = true;
+              this.ctx.imageSmoothingQuality = 'high';
             }
           }
         });
@@ -449,7 +460,7 @@ class SnesEmulator {
     }
   }
 
-  // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D (Pixel Art Nítido)
+  // Render loop: copy frames from hidden WebGL canvas to visible Canvas 2D via xBRZ 4x (WASM CPU)
   _startRenderLoop() {
     const loop = () => {
       if (!this._renderLoopRunning) return;
@@ -459,10 +470,36 @@ class SnesEmulator {
       if (this._webglCanvas.width === 0 || this._webglCanvas.height === 0) return;
       if (this.canvas.width === 0 || this.canvas.height === 0) return;
 
-      this.ctx.imageSmoothingEnabled = false;
+      if (this.scaler && this.tempCtx && this.xbrzCtx) {
+        try {
+          // 1. Copy WebGL frame to 256x224 2D canvas (browser compositor, fast & reliable)
+          this.tempCtx.drawImage(this._webglCanvas, 0, 0, 256, 224);
+
+          // 2. Read 256x224 pixels (willReadFrequently makes this sub-millisecond)
+          const imgData = this.tempCtx.getImageData(0, 0, 256, 224);
+
+          // 3. Scale with xBRZ 4x (256x224 -> 1024x896) in WebAssembly CPU (~0.6ms)
+          const scaled = this.scaler.scale(imgData.data);
+          this.xbrzImageData.data.set(scaled);
+          this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
+
+          // 4. Render 1024x896 xBRZ image to visible display canvas
+          this.ctx.imageSmoothingEnabled = true;
+          this.ctx.imageSmoothingQuality = 'high';
+          this.ctx.drawImage(
+            this.xbrzCanvas,
+            0, 0, 1024, 896,
+            0, 0, this.canvas.width, this.canvas.height
+          );
+          return;
+        } catch (_) {
+          // Fallback to direct drawImage if anything fails
+        }
+      }
 
       try {
-        // Direct drawImage: browser GPU compositor blits texture with zero shader load
+        // Fallback: direct drawImage from WebGL canvas → Canvas 2D
+        this.ctx.imageSmoothingEnabled = false;
         this.ctx.drawImage(
           this._webglCanvas,
           0, 0, this._webglCanvas.width, this._webglCanvas.height,
