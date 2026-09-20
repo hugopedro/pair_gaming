@@ -5,7 +5,7 @@
  */
 
 class MultiplayerManager {
-  constructor({ onRemoteInput, onRemoteStream, onStatusChange, onPingUpdate }) {
+  constructor({ onRemoteInput, onRemoteStream, onStatusChange, onPingUpdate, onRemoteSync }) {
     this.peer = null;
     this.conn = null;
     this.call = null;
@@ -14,9 +14,11 @@ class MultiplayerManager {
     this.isConnected = false;
     this.ping = 0;
     this.pingInterval = null;
+    this.inputSyncInterval = null;
 
     // Callbacks
-    this.onRemoteInput = onRemoteInput;     // (buttonName, isDown) => {}
+    this.onRemoteInput = onRemoteInput;     // (buttonName, isDown, activeList) => {}
+    this.onRemoteSync = onRemoteSync || null; // (activeList) => {}
     this.onRemoteStream = onRemoteStream;   // (mediaStream) => {}
     this.onStatusChange = onStatusChange;   // (statusText, mode) => {}
     this.onPingUpdate = onPingUpdate;       // (pingMs) => {}
@@ -115,6 +117,10 @@ class MultiplayerManager {
         if (this.onRemoteInput) {
           this.onRemoteInput(data.button, data.isDown, data.active);
         }
+      } else if (data.type === 'INPUT_SYNC') {
+        if (this.onRemoteSync) {
+          this.onRemoteSync(data.active);
+        }
       } else if (data.type === 'CHAT') {
         if (this.onChatMessage) {
           this.onChatMessage(data.sender, data.text);
@@ -196,6 +202,7 @@ class MultiplayerManager {
         this.onStatusChange('Conectado ao Host (Player 2)', 'ONLINE');
       }
       this._startPingMonitor();
+      this._startInputSync();
     });
 
     this.conn.on('data', (data) => {
@@ -222,6 +229,7 @@ class MultiplayerManager {
       this.isConnected = false;
       console.log('Conexão com Host encerrada.');
       this._stopPingMonitor();
+      this._stopInputSync();
 
       if (this.autoReconnect && this.mode === 'CLIENT' && this.roomId && this.reconnectAttempts < 5) {
         this.reconnectAttempts++;
@@ -321,6 +329,25 @@ class MultiplayerManager {
     }
   }
 
+  _startInputSync() {
+    this._stopInputSync();
+    this.inputSyncInterval = setInterval(() => {
+      if (this.isConnected && this.conn && this.conn.open) {
+        this.conn.send({
+          type: 'INPUT_SYNC',
+          active: this.clientActiveButtons ? Array.from(this.clientActiveButtons) : []
+        });
+      }
+    }, 100);
+  }
+
+  _stopInputSync() {
+    if (this.inputSyncInterval) {
+      clearInterval(this.inputSyncInterval);
+      this.inputSyncInterval = null;
+    }
+  }
+
   getShareableLink() {
     if (!this.roomId) return '';
     const base = window.location.origin + window.location.pathname;
@@ -409,6 +436,7 @@ class MultiplayerManager {
 
   _cleanup() {
     this._stopPingMonitor();
+    this._stopInputSync();
     if (this.conn) {
       try { this.conn.close(); } catch (_) {}
       this.conn = null;

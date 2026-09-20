@@ -256,10 +256,10 @@ class InputManager {
           BUTTON_R: isRtPressed,                     // Xbox RT -> SNES R
           BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
           BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
-          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
-          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
-          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
-          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
+          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.45)),
+          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.45)),
+          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.45)),
+          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.45))
         };
         // For Player 2 on SNES, also allow LB/RB as L/R
         if (playerNum !== 1) {
@@ -274,10 +274,10 @@ class InputManager {
           BUTTON_TURBO_B: playerNum === 1 ? isLtPressed : Boolean(isLbPressed || isLtPressed), // LT for P1 (LB is Save State)
           BUTTON_SELECT: Boolean(gp.buttons[8]?.pressed),                       // Back / View
           BUTTON_START: Boolean(gp.buttons[9]?.pressed),                        // Start / Menu
-          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.3)),
-          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.3)),
-          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.3)),
-          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.3))
+          BUTTON_UP: Boolean(gp.buttons[12]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] < -0.45)),
+          BUTTON_DOWN: Boolean(gp.buttons[13]?.pressed || (gp.axes[1] !== undefined && gp.axes[1] > 0.45)),
+          BUTTON_LEFT: Boolean(gp.buttons[14]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] < -0.45)),
+          BUTTON_RIGHT: Boolean(gp.buttons[15]?.pressed || (gp.axes[0] !== undefined && gp.axes[0] > 0.45))
         };
       }
 

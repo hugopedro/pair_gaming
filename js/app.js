@@ -173,9 +173,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const hostRemotePressed = new Set();
+  let lastRemoteInputTime = Date.now();
+
+  // Safety watchdog on host: if remote client stops sending inputs/sync for > 400ms while buttons are held, force release
+  setInterval(() => {
+    if (hostRemotePressed.size > 0 && Date.now() - lastRemoteInputTime > 400) {
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      for (const pressedBtn of hostRemotePressed) {
+        emulator.buttonUp(targetPlayer, pressedBtn);
+      }
+      hostRemotePressed.clear();
+    }
+  }, 100);
 
   const multiplayer = new MultiplayerManager({
     onRemoteInput: (btn, isDown, activeList) => {
+      lastRemoteInputTime = Date.now();
       // Host receives Client input -> If Co-Pilot is active, ignore remote inputs so girlfriend does not fight movements
       if (coPilotActive) return;
 
@@ -196,6 +209,28 @@ document.addEventListener('DOMContentLoaded', () => {
             hostRemotePressed.delete(pressedBtn);
             emulator.buttonUp(targetPlayer, pressedBtn);
           }
+        }
+      }
+    },
+    onRemoteSync: (activeList) => {
+      lastRemoteInputTime = Date.now();
+      if (coPilotActive) return;
+
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      const activeSet = new Set(Array.isArray(activeList) ? activeList : []);
+
+      // Release any buttons that are no longer held on client
+      for (const pressedBtn of Array.from(hostRemotePressed)) {
+        if (!activeSet.has(pressedBtn)) {
+          hostRemotePressed.delete(pressedBtn);
+          emulator.buttonUp(targetPlayer, pressedBtn);
+        }
+      }
+      // Ensure any active buttons are pressed on emulator
+      for (const activeBtn of activeSet) {
+        if (!hostRemotePressed.has(activeBtn)) {
+          hostRemotePressed.add(activeBtn);
+          emulator.buttonDown(targetPlayer, activeBtn);
         }
       }
     },
