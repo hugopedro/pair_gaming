@@ -35,15 +35,60 @@ if (OrigAudioContext && !window.__snesAudioHooked) {
   };
 }
 
+// Enforce preserveDrawingBuffer on WebGL contexts so Nostalgist frames can be read by 2D canvas
+const OrigGetContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function(type, attributes) {
+  if (type === 'webgl' || type === 'webgl2' || type === 'experimental-webgl') {
+    attributes = attributes || {};
+    attributes.preserveDrawingBuffer = true;
+  }
+  return OrigGetContext.call(this, type, attributes);
+};
+
 class SnesEmulator {
   constructor(canvasElement) {
     this.canvas = canvasElement;
+    this.ctx = this.canvas.getContext('2d', { alpha: false });
     this.nostalgist = null;
 
     // Active aspect ratio mode: '16-9' | '4-3' | '16-10' | 'superwide'
     let savedRatio = localStorage.getItem('duplinha_snes_ratio');
     if (!savedRatio) savedRatio = '16-9';
     this.aspectRatioMode = savedRatio;
+
+    // Setup xBRZ 4x Scaler (WebAssembly CPU - exactly like NES & Master System)
+    this.scaler = null;
+    try {
+      const ScalerClass = window.XbrzScaler;
+      if (typeof ScalerClass === 'function') {
+        this.scaler = new ScalerClass(256, 224, 4);
+      }
+    } catch (e) {
+      console.warn('XbrzScaler falhou ao iniciar:', e);
+    }
+
+    // Intermediate 1024x896 2D canvas for xBRZ
+    this.xbrzCanvas = document.createElement('canvas');
+    this.xbrzCanvas.width = 1024;
+    this.xbrzCanvas.height = 896;
+    this.xbrzCtx = this.xbrzCanvas.getContext('2d', { alpha: false });
+    this.xbrzImageData = this.xbrzCtx.createImageData(1024, 896);
+
+    // 256x224 canvas to read raw Nostalgist frames
+    this.rawCanvas = document.createElement('canvas');
+    this.rawCanvas.width = 256;
+    this.rawCanvas.height = 224;
+    this.rawCtx = this.rawCanvas.getContext('2d', { willReadFrequently: true });
+
+    // Offscreen canvas for Nostalgist to render raw 256x224 WebGL
+    this.offscreenCanvas = document.createElement('canvas');
+    this.offscreenCanvas.width = 256;
+    this.offscreenCanvas.height = 224;
+    this.offscreenCanvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:256px;height:224px;visibility:hidden;pointer-events:none;';
+    document.body.appendChild(this.offscreenCanvas);
+
+    // Set visible canvas dimensions
+    this._updateCanvasSize();
 
     // Audio & State
     this.currentRomData = null;
@@ -53,6 +98,7 @@ class SnesEmulator {
     this.fps = 60;
     this.fpsTimer = performance.now();
     this.frameCount = 0;
+    this._renderLoopRunning = false;
 
     // Rewind Ring Buffer (snapshots every 3s for up to 30s)
     this.rewindBuffer = [];
@@ -60,6 +106,7 @@ class SnesEmulator {
     this.maxRewindStates = 10; // 10 snapshots * 3s = 30 seconds
     this.rewindTimer = null;
     this.isRewinding = false;
+    this._isCapturing = false;
 
     // Save States Directory Handle (File System Access API)
     this.savesDirHandle = null;
@@ -70,9 +117,26 @@ class SnesEmulator {
     this.onFPSUpdate = null;
   }
 
+  _updateCanvasSize() {
+    const widthMap = {
+      'superwide': 1280,
+      '16-9': 1280,
+      '16-10': 1152,
+      '4-3': 960,
+      'original': 960
+    };
+    const targetW = widthMap[this.aspectRatioMode] || 1280;
+    const targetH = 720;
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+      this.canvas.width = targetW;
+      this.canvas.height = targetH;
+    }
+  }
+
   setAspectRatio(ratio) {
     this.aspectRatioMode = ratio;
     localStorage.setItem('duplinha_snes_ratio', ratio);
+    this._updateCanvasSize();
   }
 
   _getButtonKey(buttonName) {
@@ -249,6 +313,7 @@ class SnesEmulator {
     this.currentRomData = romData;
     this.currentRomName = romName;
 
+    this._renderLoopRunning = false;
     if (this.nostalgist) {
       try {
         await this.nostalgist.exit();
@@ -273,35 +338,15 @@ class SnesEmulator {
         throw new Error('Nostalgist.js não está carregado no navegador.');
       }
 
+      // Launch Nostalgist on offscreen 256x224 canvas with ZERO GPU shaders
       const launchOptions = {
         core: 'snes9x',
         rom: {
           fileName: fileName,
           fileContent: blob
         },
-        element: this.canvas,
-        size: { width: 1536, height: 1344 },
-        shader: '6xbrz',
-        resolveShader: async () => {
-          try {
-            const res = await fetch('shaders/xbrz/6xbrz.glslp');
-            if (res.ok) {
-              return [
-                'shaders/xbrz/6xbrz.glslp',
-                'shaders/xbrz/shaders/6xbrz.glsl'
-              ];
-            }
-          } catch (_) {}
-          return [
-            'shaders/xbrz/6xbrz.glslp',
-            'shaders/xbrz/shaders/6xbrz.glsl'
-          ];
-        },
-        style: {
-          width: '100%',
-          height: '100%',
-          objectFit: 'fill'
-        },
+        element: this.offscreenCanvas,
+        size: { width: 256, height: 224 },
         retroarchConfig: {
           video_vsync: 'true',
           video_threaded: 'true',
@@ -339,18 +384,13 @@ class SnesEmulator {
         }
       };
 
-      try {
-        this.nostalgist = await NostalgistClass.launch(launchOptions);
-      } catch (shaderErr) {
-        console.warn('Tentativa de iniciar com shader xBRZ 6x falhou, iniciando core limpo:', shaderErr);
-        const fallbackOptions = { ...launchOptions };
-        delete fallbackOptions.shader;
-        delete fallbackOptions.resolveShader;
-        this.nostalgist = await NostalgistClass.launch(fallbackOptions);
-      }
+      this.nostalgist = await NostalgistClass.launch(launchOptions);
 
       this.isRunning = true;
       this.isPaused = false;
+
+      // Start 60 FPS Canvas 2D + xBRZ 4x WebAssembly render loop
+      this._startRenderLoop();
 
       // Start automatic rewind buffer captures every 3 seconds (10 snapshots = 30s)
       this.rewindTimer = setInterval(() => {
@@ -371,6 +411,44 @@ class SnesEmulator {
       }
       return false;
     }
+  }
+
+  _startRenderLoop() {
+    if (this._renderLoopRunning) return;
+    this._renderLoopRunning = true;
+
+    const render = () => {
+      if (!this.isRunning) {
+        this._renderLoopRunning = false;
+        return;
+      }
+      if (!this.isPaused && this.offscreenCanvas) {
+        try {
+          if (this.scaler) {
+            // 1. Grab raw 256x224 frame from Nostalgist offscreen WebGL canvas
+            this.rawCtx.drawImage(this.offscreenCanvas, 0, 0);
+            const rawImg = this.rawCtx.getImageData(0, 0, 256, 224);
+
+            // 2. Scale 4x with xBRZ in 0.6ms via WebAssembly CPU
+            const scaled = this.scaler.scale(rawImg.data);
+            this.xbrzImageData.data.set(scaled);
+            this.xbrzCtx.putImageData(this.xbrzImageData, 0, 0);
+
+            // 3. Draw 1024x896 xBRZ to visible 2D canvas with hardware scaling
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.imageSmoothingQuality = 'high';
+            this.ctx.drawImage(this.xbrzCanvas, 0, 0, this.canvas.width, this.canvas.height);
+          } else {
+            // Fallback: direct 2D blit
+            this.ctx.imageSmoothingEnabled = true;
+            this.ctx.imageSmoothingQuality = 'high';
+            this.ctx.drawImage(this.offscreenCanvas, 0, 0, this.canvas.width, this.canvas.height);
+          }
+        } catch (_) {}
+      }
+      requestAnimationFrame(render);
+    };
+    requestAnimationFrame(render);
   }
 
   _startFPSMonitor() {
