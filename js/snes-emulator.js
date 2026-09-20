@@ -54,9 +54,10 @@ class SnesEmulator {
     this.fpsTimer = performance.now();
     this.frameCount = 0;
 
-    // Rewind Ring Buffer (snapshots every 1s for up to 30s)
+    // Rewind Ring Buffer (snapshots every 3s for up to 30s)
     this.rewindBuffer = [];
-    this.maxRewindStates = 30; // 30 snapshots * 1s = 30 seconds
+    this.rewindIntervalMs = 3000;
+    this.maxRewindStates = 10; // 10 snapshots * 3s = 30 seconds
     this.rewindTimer = null;
     this.isRewinding = false;
 
@@ -352,10 +353,9 @@ class SnesEmulator {
       this.isPaused = false;
 
       // Start automatic rewind buffer captures every 3 seconds (10 snapshots = 30s)
-      this.maxRewindStates = 10;
       this.rewindTimer = setInterval(() => {
         this._captureRewindState();
-      }, 3000);
+      }, this.rewindIntervalMs);
 
       // Start FPS monitor
       this._startFPSMonitor();
@@ -403,7 +403,8 @@ class SnesEmulator {
 
   async rewind(seconds = 3) {
     if (!this.nostalgist || this.rewindBuffer.length === 0) return false;
-    const stepsToPop = Math.max(1, Math.round(seconds));
+    const intervalSec = (this.rewindIntervalMs || 3000) / 1000;
+    const stepsToPop = Math.max(1, Math.round(seconds / intervalSec));
     for (let i = 0; i < stepsToPop; i++) {
       if (this.rewindBuffer.length > 1) {
         this.rewindBuffer.pop();

@@ -391,16 +391,6 @@ vec2 f = fract(vTexCoord.xy * SourceSize.xy);
 						  !((blendResult[0] != BLEND_NONE && !IsPixEqual(src[0], src[2])) ||
 							(blendResult[2] != BLEND_NONE && !IsPixEqual(src[0], src[6])) ||
 							(IsPixEqual(src[2], src[1]) && IsPixEqual(src[1], src[8]) && IsPixEqual(src[8], src[7]) && IsPixEqual(src[7], src[6]) && !IsPixEqual(src[0], src[8])) ) );
-		
-			dist_01_04 = DistYCbCr(src[7], src[2]);
-			dist_03_08 = DistYCbCr(src[1], src[6]);
-			haveShallowLine = (STEEP_DIRECTION_THRESHOLD * dist_01_04 <= dist_03_08) && (v[0] != v[2]) && (v[3] != v[2]);
-			haveSteepLine   = (STEEP_DIRECTION_THRESHOLD * dist_03_08 <= dist_01_04) && (v[0] != v[6]) && (v[5] != v[6]);
-			needBlend = (blendResult[1] != BLEND_NONE);
-			doLineBlend = (  blendResult[1] >= BLEND_DOMINANT ||
-						  !((blendResult[0] != BLEND_NONE && !IsPixEqual(src[0], src[2])) ||
-							(blendResult[2] != BLEND_NONE && !IsPixEqual(src[0], src[6])) ||
-							(IsPixEqual(src[2], src[1]) && IsPixEqual(src[1], src[8]) && IsPixEqual(src[8], src[7]) && IsPixEqual(src[7], src[6]) && !IsPixEqual(src[0], src[8])) ) );
 			
 			blendPix = ( DistYCbCr(src[0], src[7]) <= DistYCbCr(src[0], src[1]) ) ? src[7] : src[1];
 			dst[ 7] = mix(dst[ 7], blendPix, (needBlend && doLineBlend && haveSteepLine) ? 0.250 : 0.000);
