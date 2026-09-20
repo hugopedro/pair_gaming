@@ -403,32 +403,57 @@ class MultiplayerManager {
               encoding.maxFramerate = 60;
             }
 
-            // 'balanced' preserves framerate & latency when Wi-Fi fluctuates
+            // 'maintain-framerate' prioritizes FPS and instant real-time response over resolution
             if ('degradationPreference' in params) {
-              params.degradationPreference = 'balanced';
+              params.degradationPreference = 'maintain-framerate';
             }
 
             sender.setParameters(params).then(() => {
-              console.log('⚡ WebRTC otimizado: 1.8 Mbps max, 60 FPS, balanced, H.264');
+              console.log('⚡ WebRTC Host otimizado: 1.8 Mbps max, 60 FPS, maintain-framerate, H.264');
             }).catch(() => {
               // Can fail silently during active renegotiation
             });
           }
         }
       } catch (err) {
-        console.warn('Configuração WebRTC:', err);
+        console.warn('Configuração WebRTC Host:', err);
+      }
+    };
+
+    // 3. Configure receiver parameters on client (Sandy's side)
+    // Disables Chromium's default 200-400ms video jitter buffer for true zero-latency cloud gaming
+    const applyReceiverOptimizations = () => {
+      try {
+        const receivers = pc.getReceivers ? pc.getReceivers() : [];
+        for (const receiver of receivers) {
+          if ('playoutDelayHint' in receiver) {
+            receiver.playoutDelayHint = 0; // Force immediate render upon frame decode
+          }
+          if ('jitterBufferTarget' in receiver) {
+            receiver.jitterBufferTarget = 0; // Minimize packet queueing in memory
+          }
+        }
+      } catch (err) {
+        console.warn('Configuração WebRTC Receiver:', err);
       }
     };
 
     // Apply immediately and retry after ICE connection stabilizes
     applyParameters();
+    applyReceiverOptimizations();
     setTimeout(applyParameters, 500);
+    setTimeout(applyReceiverOptimizations, 500);
     setTimeout(applyParameters, 2000);
+    setTimeout(applyReceiverOptimizations, 2000);
 
     if (pc.addEventListener) {
+      pc.addEventListener('track', () => {
+        applyReceiverOptimizations();
+      });
       pc.addEventListener('connectionstatechange', () => {
         if (pc.connectionState === 'connected') {
           applyParameters();
+          applyReceiverOptimizations();
         }
       });
     }

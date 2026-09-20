@@ -659,8 +659,8 @@ class NesEmulator {
 
     const videoTrack = videoStream.getVideoTracks()[0];
     if (videoTrack && 'contentHint' in videoTrack) {
-      // Prioritize high detail/sharpness over motion blur for pixel art & HUD
-      videoTrack.contentHint = 'detail';
+      // Prioritize minimal latency and real-time motion over static detail buffering
+      videoTrack.contentHint = 'motion';
     }
 
     const audioTrack = (this.mediaStreamDest && this.mediaStreamDest.stream) 
