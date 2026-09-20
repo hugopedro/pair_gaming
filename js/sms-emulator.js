@@ -74,12 +74,13 @@ class SmsEmulator {
     this.turboA = { 1: false, 2: false };
     this.turboB = { 1: false, 2: false };
 
-    // Rewind Ring Buffer (snapshots every 30 frames = 0.5s for up to 15s)
+    // Rewind Ring Buffer (snapshots every 30 frames = 0.5s for up to 30s)
     this.rewindBuffer = [];
-    this.maxRewindStates = 30; // 30 states * 0.5s = 15 seconds
+    this.maxRewindStates = 60; // 60 states * 0.5s = 30 seconds
     this.rewindIntervalFrames = 30;
     this.totalFrames = 0;
     this.isRewinding = false;
+    this.savesDirHandle = null;
 
     // Callbacks
     this.onStatusChange = null;
@@ -596,42 +597,173 @@ class SmsEmulator {
     }
   }
 
+  async _getSavesDirHandle(autoPrompt = false) {
+    if (this.savesDirHandle) {
+      try {
+        const q = await this.savesDirHandle.queryPermission({ mode: 'readwrite' });
+        if (q === 'granted') return this.savesDirHandle;
+        if (autoPrompt) {
+          const req = await this.savesDirHandle.requestPermission({ mode: 'readwrite' });
+          if (req === 'granted') return this.savesDirHandle;
+        }
+      } catch (_) {}
+    }
+
+    // Try restoring from IndexedDB
+    try {
+      const storedHandle = await this._dbGet('duplinha_saves_dir_handle');
+      if (storedHandle) {
+        this.savesDirHandle = storedHandle;
+        const q = await storedHandle.queryPermission({ mode: 'readwrite' });
+        if (q === 'granted') return storedHandle;
+        if (autoPrompt) {
+          const req = await storedHandle.requestPermission({ mode: 'readwrite' });
+          if (req === 'granted') return storedHandle;
+        }
+      }
+    } catch (_) {}
+
+    // If autoPrompt is true and not yet granted/stored, prompt user to select folder
+    if (autoPrompt && typeof window.showDirectoryPicker === 'function') {
+      try {
+        const handle = await window.showDirectoryPicker({
+          id: 'sms_saves_dir',
+          mode: 'readwrite',
+          startIn: 'documents'
+        });
+        if (handle) {
+          this.savesDirHandle = handle;
+          await this._dbSet('duplinha_saves_dir_handle', handle);
+          return handle;
+        }
+      } catch (err) {
+        console.warn('Seleção de pasta SMS cancelada ou não permitida:', err);
+      }
+    }
+
+    return null;
+  }
+
+  async selectSavesDirectory() {
+    if (typeof window.showDirectoryPicker !== 'function') {
+      return { success: false, reason: 'unsupported' };
+    }
+    try {
+      const handle = await window.showDirectoryPicker({
+        id: 'sms_saves_dir',
+        mode: 'readwrite',
+        startIn: 'documents'
+      });
+      if (handle) {
+        this.savesDirHandle = handle;
+        await this._dbSet('duplinha_saves_dir_handle', handle);
+        return { success: true, name: handle.name };
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        return { success: false, reason: 'aborted' };
+      }
+      return { success: false, reason: err.message };
+    }
+    return { success: false, reason: 'unknown' };
+  }
+
   async saveState() {
-    if (!this.sms) return false;
+    if (!this.sms) return null;
     try {
       const state = this.sms.saveState();
-      if (state) {
-        this.memorySaveState = state;
-        if (this.currentRomName) {
-          await this._dbSet(`duplinha_sms_save_${this.currentRomName}`, state);
-        }
-        return true;
+      if (!state) return null;
+      this.memorySaveState = state;
+      if (this.currentRomName) {
+        await this._dbSet(`duplinha_sms_save_${this.currentRomName}`, state);
       }
-      return false;
+
+      let localSavedName = null;
+      try {
+        const dirHandle = await this._getSavesDirHandle(true);
+        if (dirHandle) {
+          const now = new Date();
+          const pad = (n) => String(n).padStart(2, '0');
+          const ts = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+          const cleanRom = (this.currentRomName || 'SMS_Game').replace(/[^a-zA-Z0-9_-]/g, '_');
+          const fileName = `${cleanRom}_${ts}.state`;
+
+          const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(JSON.stringify(state, null, 2));
+          await writable.close();
+          localSavedName = fileName;
+        }
+      } catch (dirErr) {
+        console.warn('Erro ao gravar save SMS no disco local:', dirErr);
+      }
+
+      return { state, localSavedName };
     } catch (e) {
       console.error('Falha ao salvar estado SMS:', e);
-      if (this.memorySaveState) return true;
-      return false;
+      if (this.memorySaveState) return { state: this.memorySaveState, localSavedName: null };
+      return null;
     }
   }
 
-  async loadState() {
-    if (!this.sms || !this.currentRomName) return false;
+  async loadState(savedState = null) {
+    if (!this.sms) return false;
     try {
-      let state = this.memorySaveState;
+      let state = savedState;
+      let loadedFromLocal = null;
+
+      // 1. Try to find the latest .state file in local folder if bound
+      if (!state && this.currentRomName) {
+        try {
+          const dirHandle = await this._getSavesDirHandle(false);
+          if (dirHandle) {
+            const cleanRom = this.currentRomName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            let latestFile = null;
+            let latestName = '';
+
+            for await (const [name, handle] of dirHandle.entries()) {
+              if (name.startsWith(cleanRom) && name.endsWith('.state')) {
+                if (name > latestName) {
+                  latestName = name;
+                  latestFile = handle;
+                }
+              }
+            }
+
+            if (latestFile) {
+              const file = await latestFile.getFile();
+              const text = await file.text();
+              state = JSON.parse(text);
+              loadedFromLocal = latestName;
+            }
+          }
+        } catch (dirErr) {
+          console.warn('Tentativa de ler save local SMS:', dirErr);
+        }
+      }
+
+      // 2. Fallback to in-memory state
+      if (!state && this.memorySaveState) {
+        state = this.memorySaveState;
+      }
+
+      // 3. Fallback to IndexedDB state
       if (!state && this.currentRomName) {
         state = await this._dbGet(`duplinha_sms_save_${this.currentRomName}`);
       }
+
+      // 4. Fallback to localStorage (legacy)
       if (!state && this.currentRomName) {
         try {
           const stored = localStorage.getItem(`duplinha_sms_save_${this.currentRomName}`);
           if (stored) state = JSON.parse(stored);
         } catch (_) {}
       }
+
       if (state) {
         this.sms.loadState(state);
         this.memorySaveState = state;
-        return true;
+        return { success: true, loadedFromLocal };
       }
       return false;
     } catch (e) {

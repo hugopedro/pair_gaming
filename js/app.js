@@ -239,16 +239,28 @@ document.addEventListener('DOMContentLoaded', () => {
       if (playerNum === 1) {
         if (buttonName === 'SAVE_STATE') {
           if (isDown) {
-            Promise.resolve(emulator.saveState()).then(saved => {
-              showToast(saved ? '💾 Estado Salvo com Sucesso! (LB)' : 'Falha ao salvar estado.');
+            Promise.resolve(emulator.saveState()).then(res => {
+              if (res && res.localSavedName) {
+                showToast(`💾 Salvo no PC! (${res.localSavedName})`, 3500);
+              } else if (res) {
+                showToast('💾 Estado Salvo com Sucesso! (LB)');
+              } else {
+                showToast('Falha ao salvar estado.');
+              }
             });
           }
           return;
         }
         if (buttonName === 'LOAD_STATE') {
           if (isDown) {
-            Promise.resolve(emulator.loadState()).then(loaded => {
-              showToast(loaded ? '📂 Estado Carregado! (RB)' : 'Nenhum estado salvo encontrado.');
+            Promise.resolve(emulator.loadState()).then(res => {
+              if (res && res.loadedFromLocal) {
+                showToast(`📂 Carregado do PC! (${res.loadedFromLocal})`, 3500);
+              } else if (res) {
+                showToast('📂 Estado Carregado! (RB)');
+              } else {
+                showToast('Nenhum estado salvo encontrado.');
+              }
             });
           }
           return;
@@ -484,13 +496,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnSaveState').addEventListener('click', async () => {
-    const saved = await emulator.saveState();
-    showToast(saved ? '💾 Estado Salvo com Sucesso!' : 'Falha ao salvar estado.');
+    const res = await emulator.saveState();
+    if (res && res.localSavedName) {
+      showToast(`💾 Salvo no PC! (${res.localSavedName})`, 3500);
+    } else if (res) {
+      showToast('💾 Estado Salvo com Sucesso!');
+    } else {
+      showToast('Falha ao salvar estado.');
+    }
   });
 
   document.getElementById('btnLoadState').addEventListener('click', async () => {
-    const loaded = await emulator.loadState();
-    showToast(loaded ? '📂 Estado Carregado!' : 'Nenhum estado salvo encontrado.');
+    const res = await emulator.loadState();
+    if (res && res.loadedFromLocal) {
+      showToast(`📂 Carregado do PC! (${res.loadedFromLocal})`, 3500);
+    } else if (res) {
+      showToast('📂 Estado Carregado!');
+    } else {
+      showToast('Nenhum estado salvo encontrado.');
+    }
   });
 
   // Rewind & Co-Pilot Click Listeners (Top and Bottom bars)
@@ -737,6 +761,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <span>Copiar Imagem</span>
       </div>
       <div class="retro-context-menu-divider"></div>
+      <div class="retro-context-menu-item" id="menuItemSavesFolder">
+        <span class="menu-icon">📁</span>
+        <span>Pasta de Saves no PC</span>
+      </div>
+      <div class="retro-context-menu-divider"></div>
       <div class="retro-context-menu-item" id="menuItemFullscreen">
         <span class="menu-icon">⛶</span>
         <span>Tela Cheia</span>
@@ -752,6 +781,18 @@ document.addEventListener('DOMContentLoaded', () => {
     contextMenu.querySelector('#menuItemCopy').addEventListener('click', () => {
       closeContextMenu();
       copyImageToClipboard();
+    });
+
+    contextMenu.querySelector('#menuItemSavesFolder').addEventListener('click', async () => {
+      closeContextMenu();
+      const res = await emulator.selectSavesDirectory();
+      if (res && res.success) {
+        showToast(`📁 Pasta de saves vinculada: ${res.name}`, 4000);
+      } else if (res && res.reason === 'unsupported') {
+        showToast('⚠️ Navegador não suporta acesso a pastas locais.');
+      } else if (res && res.reason !== 'aborted') {
+        showToast('⚠️ Não foi possível vincular a pasta.');
+      }
     });
 
     contextMenu.querySelector('#menuItemFullscreen').addEventListener('click', () => {
@@ -780,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
 
       const menuWidth = 230;
-      const menuHeight = 130;
+      const menuHeight = 180;
       let x = e.clientX;
       let y = e.clientY;
 
