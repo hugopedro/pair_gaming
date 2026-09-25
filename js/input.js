@@ -121,6 +121,14 @@ class InputManager {
         return;
       }
 
+      // Shortcut Key for Picture-in-Picture: KeyP
+      if (e.code === 'KeyP' && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (window.togglePictureInPicture) {
+          window.togglePictureInPicture();
+          return;
+        }
+      }
+
       // Check Player 1
       if (this.keyMapP1[e.code]) {
         const btn = this.keyMapP1[e.code];
@@ -193,6 +201,7 @@ class InputManager {
       if (!this.gamepadLoopActive) {
         this.gamepadLoopActive = true;
         this._pollGamepad();
+        this._ensureBackgroundGamepadPolling();
       }
     });
 
@@ -216,11 +225,26 @@ class InputManager {
       }
       this.gamepadLoopActive = true;
       this._pollGamepad();
+      this._ensureBackgroundGamepadPolling();
+    }
+  }
+
+  _ensureBackgroundGamepadPolling() {
+    if (!this._bgGamepadTimer) {
+      this._bgGamepadTimer = setInterval(() => {
+        // Keeps gamepad polling alive when window is blurred/minimized during Picture-in-Picture
+        if (this.gamepadLoopActive && (document.hidden || document.pictureInPictureElement)) {
+          if (performance.now() - (this.lastGamepadPoll || 0) >= 15) {
+            this._pollGamepad();
+          }
+        }
+      }, 16);
     }
   }
 
   _pollGamepad() {
     if (!this.gamepadLoopActive) return;
+    this.lastGamepadPoll = performance.now();
 
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
     for (let i = 0; i < gamepads.length; i++) {

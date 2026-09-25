@@ -542,6 +542,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnPipTop = document.getElementById('btnPipTop');
+  if (btnPipTop) {
+    btnPipTop.addEventListener('click', () => {
+      togglePictureInPicture();
+    });
+  }
+
   document.getElementById('btnFullscreen').addEventListener('click', () => {
     const cabinet = document.querySelector('.screen-cabinet');
     if (!document.fullscreenElement) {
@@ -726,16 +733,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // 10. Retro Context Menu with Picture-in-Picture & Copy Image
   let pipVideo = null;
 
+  function updatePipUI(isActive) {
+    const btn = document.getElementById('btnPipTop');
+    if (btn) {
+      if (isActive) {
+        btn.classList.add('active');
+        btn.setAttribute('title', 'Fechar Picture-in-Picture (Atalho: P)');
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('title', 'Picture-in-Picture (Janela Flutuante - Atalho: P)');
+      }
+    }
+    const menuPip = document.querySelector('#menuItemPip');
+    if (menuPip) {
+      const span = menuPip.querySelector('span:not(.menu-icon)');
+      if (span) span.textContent = isActive ? 'Fechar Picture-in-Picture' : 'Picture-in-Picture';
+    }
+  }
+
   async function togglePictureInPicture() {
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
+        updatePipUI(false);
+        showToast('📺 Picture-in-Picture fechado.');
         return;
       }
 
       if (isPlayer2Mode && remoteVideo) {
         if (remoteVideo.readyState >= 2) {
           await remoteVideo.requestPictureInPicture();
+          updatePipUI(true);
           showToast('📺 Picture-in-Picture Ativado!');
         } else {
           showToast('⚠️ Aguarde a transmissão iniciar para abrir PiP.');
@@ -743,33 +771,55 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Host / Local Emulator Mode:
       if (!pipVideo) {
         pipVideo = document.createElement('video');
-        pipVideo.muted = true;
+        pipVideo.id = 'hostPipVideo';
+        pipVideo.muted = true; // Host already hears sound via WebAudio audioCtx; avoids double audio echo
         pipVideo.playsInline = true;
+        pipVideo.autoplay = true;
         pipVideo.style.position = 'fixed';
         pipVideo.style.top = '-9999px';
         pipVideo.style.left = '-9999px';
-        pipVideo.style.width = '1px';
-        pipVideo.style.height = '1px';
-        pipVideo.style.opacity = '0';
+        pipVideo.style.width = '256px';
+        pipVideo.style.height = '240px';
+        pipVideo.style.opacity = '0.01'; // Avoid zero-dimension occlusion optimizations in Chromium
         pipVideo.style.pointerEvents = 'none';
         document.body.appendChild(pipVideo);
+
+        pipVideo.addEventListener('leavepictureinpicture', () => {
+          updatePipUI(false);
+        });
+        pipVideo.addEventListener('enterpictureinpicture', () => {
+          updatePipUI(true);
+        });
       }
 
-      const stream = canvas.captureStream ? canvas.captureStream(60) : null;
+      const stream = (emulator && emulator.getVideoStream)
+        ? emulator.getVideoStream()
+        : (canvas.captureStream ? canvas.captureStream(60) : null);
+
       if (!stream) {
         showToast('⚠️ Picture-in-Picture não suportado neste navegador.');
         return;
       }
-      pipVideo.srcObject = stream;
+
+      if (pipVideo.srcObject !== stream) {
+        pipVideo.srcObject = stream;
+      }
       await pipVideo.play();
       await pipVideo.requestPictureInPicture();
-      showToast('📺 Picture-in-Picture Ativado!');
+      updatePipUI(true);
+      showToast('📺 Picture-in-Picture Ativado! Transmissão ao vivo continua normalmente.');
     } catch (err) {
       console.warn('Erro ao abrir Picture-in-Picture:', err);
       showToast('⚠️ Não foi possível abrir Picture-in-Picture.');
     }
+  }
+  window.togglePictureInPicture = togglePictureInPicture;
+
+  if ('pictureInPictureEnabled' in document) {
+    document.addEventListener('leavepictureinpicture', () => updatePipUI(false));
   }
 
   async function copyImageToClipboard() {

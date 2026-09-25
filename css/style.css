@@ -1405,6 +1405,29 @@ body.player2-mode .toast-container {
   box-shadow: 0 0 14px rgba(186, 104, 200, 0.6);
 }
 
+/* Picture-in-Picture Button */
+.btn-pip {
+  background: rgba(33, 150, 243, 0.18);
+  border: 1px solid rgba(33, 150, 243, 0.5);
+  color: #90caf9;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-pip:hover {
+  background: rgba(33, 150, 243, 0.35);
+  border-color: #64b5f6;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(100, 181, 246, 0.6);
+}
+
+.btn-pip.active {
+  background: #2196f3;
+  color: #fff;
+  border-color: #90caf9;
+  box-shadow: 0 0 15px rgba(33, 150, 243, 0.8);
+}
+
 /* Fullscreen adjustments for Reactions Bar */
 .screen-cabinet:fullscreen .reactions-bar,
 .screen-cabinet:-webkit-full-screen .reactions-bar,

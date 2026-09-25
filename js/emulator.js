@@ -85,6 +85,11 @@ class NesEmulator {
     this.onStatusChange = null;
     this.onFPSUpdate = null;
 
+    // Background Unthrottled Driver & Shared Video Stream for PiP / WebRTC
+    this.bgWorker = null;
+    this.sharedVideoStream = null;
+    this._initBackgroundWorker();
+
     this._initNES();
   }
 
@@ -277,6 +282,49 @@ class NesEmulator {
     }
   }
 
+  _initBackgroundWorker() {
+    try {
+      const code = `
+        let timer = null;
+        self.onmessage = function(e) {
+          if (e.data === 'start') {
+            if (!timer) {
+              timer = setInterval(function() {
+                self.postMessage('tick');
+              }, 16);
+            }
+          } else if (e.data === 'stop') {
+            if (timer) {
+              clearInterval(timer);
+              timer = null;
+            }
+          }
+        };
+      `;
+      const blob = new Blob([code], { type: 'application/javascript' });
+      this.bgWorker = new Worker(URL.createObjectURL(blob));
+      this.bgWorker.onmessage = () => {
+        // Keeps loop running at 60 FPS even when tab is in background, minimized, or in Picture-in-Picture
+        if (this.isRunning && !this.isPaused) {
+          const now = performance.now();
+          if (now - this.lastFrameTime >= 15.5) {
+            this._stepFrame(now);
+          }
+        }
+      };
+    } catch (e) {
+      console.warn('Web Worker background loop fallback:', e);
+      setInterval(() => {
+        if (this.isRunning && !this.isPaused && (document.hidden || document.pictureInPictureElement)) {
+          const now = performance.now();
+          if (now - this.lastFrameTime >= 16) {
+            this._stepFrame(now);
+          }
+        }
+      }, 16);
+    }
+  }
+
   start() {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -284,11 +332,13 @@ class NesEmulator {
     this.lastFrameTime = performance.now();
     this.fpsTimer = performance.now();
     this.frameCount = 0;
+    if (this.bgWorker) this.bgWorker.postMessage('start');
     this._loop();
   }
 
   stop() {
     this.isRunning = false;
+    if (this.bgWorker) this.bgWorker.postMessage('stop');
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -298,8 +348,11 @@ class NesEmulator {
   togglePause() {
     if (!this.isRunning) return false;
     this.isPaused = !this.isPaused;
-    if (!this.isPaused) {
+    if (this.isPaused) {
+      if (this.bgWorker) this.bgWorker.postMessage('stop');
+    } else {
       this.lastFrameTime = performance.now();
+      if (this.bgWorker) this.bgWorker.postMessage('start');
       this._loop();
     }
     return this.isPaused;
@@ -355,10 +408,9 @@ class NesEmulator {
     return false;
   }
 
-  _loop() {
-    if (!this.isRunning || this.isPaused) return;
+  _stepFrame(now) {
+    if (!this.isRunning || this.isPaused || !this.nes) return;
 
-    const now = performance.now();
     const elapsed = now - this.lastFrameTime;
 
     // Target 60 FPS (~16.66ms per frame)
@@ -386,7 +438,12 @@ class NesEmulator {
         if (this.onFPSUpdate) this.onFPSUpdate(this.fps);
       }
     }
+  }
 
+  _loop() {
+    if (!this.isRunning || this.isPaused) return;
+
+    this._stepFrame(performance.now());
     this.animationFrameId = requestAnimationFrame(() => this._loop());
   }
 
@@ -649,20 +706,33 @@ class NesEmulator {
   }
 
   /**
+   * Returns a singleton shared 60 FPS video stream from the canvas.
+   * Both WebRTC streaming to Sandy and Host Picture-in-Picture share this exact stream
+   * to prevent duplicate canvas capture or stream resets.
+   */
+  getVideoStream() {
+    if (!this.sharedVideoStream || (this.sharedVideoStream.active === false)) {
+      this.sharedVideoStream = this.canvas.captureStream ? this.canvas.captureStream(60) : null;
+      if (this.sharedVideoStream) {
+        const videoTrack = this.sharedVideoStream.getVideoTracks()[0];
+        if (videoTrack && 'contentHint' in videoTrack) {
+          videoTrack.contentHint = 'motion';
+        }
+      }
+    }
+    return this.sharedVideoStream;
+  }
+
+  /**
    * Captures the live 60 FPS video track + Web Audio track
    * for peer-to-peer streaming via WebRTC
    */
   getMediaStream() {
     this._initAudioContext();
-    const videoStream = this.canvas.captureStream ? this.canvas.captureStream(60) : null;
+    const videoStream = this.getVideoStream();
     if (!videoStream) return null;
 
     const videoTrack = videoStream.getVideoTracks()[0];
-    if (videoTrack && 'contentHint' in videoTrack) {
-      // Prioritize minimal latency and real-time motion over static detail buffering
-      videoTrack.contentHint = 'motion';
-    }
-
     const audioTrack = (this.mediaStreamDest && this.mediaStreamDest.stream) 
       ? this.mediaStreamDest.stream.getAudioTracks()[0] 
       : null;
