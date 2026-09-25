@@ -69,6 +69,7 @@ class NesEmulator {
     this.isPaused = false;
     this.animationFrameId = null;
     this.lastFrameTime = 0;
+    this.frameAccumulator = 0;
     this.fps = 60;
     this.frameCount = 0;
     this.fpsTimer = performance.now();
@@ -304,10 +305,10 @@ class NesEmulator {
       const blob = new Blob([code], { type: 'application/javascript' });
       this.bgWorker = new Worker(URL.createObjectURL(blob));
       this.bgWorker.onmessage = () => {
-        // Keeps loop running at 60 FPS even when tab is in background, minimized, or in Picture-in-Picture
+        // Keeps loop running at 60 FPS when tab is in background, minimized, or if rAF stalls
         if (this.isRunning && !this.isPaused) {
           const now = performance.now();
-          if (now - this.lastFrameTime >= 15.5) {
+          if (document.hidden || (now - this.lastFrameTime >= 35)) {
             this._stepFrame(now);
           }
         }
@@ -317,7 +318,7 @@ class NesEmulator {
       setInterval(() => {
         if (this.isRunning && !this.isPaused && (document.hidden || document.pictureInPictureElement)) {
           const now = performance.now();
-          if (now - this.lastFrameTime >= 16) {
+          if (document.hidden || (now - this.lastFrameTime >= 35)) {
             this._stepFrame(now);
           }
         }
@@ -330,6 +331,7 @@ class NesEmulator {
     this.isRunning = true;
     this.isPaused = false;
     this.lastFrameTime = performance.now();
+    this.frameAccumulator = 0;
     this.fpsTimer = performance.now();
     this.frameCount = 0;
     if (this.bgWorker) this.bgWorker.postMessage('start');
@@ -352,6 +354,7 @@ class NesEmulator {
       if (this.bgWorker) this.bgWorker.postMessage('stop');
     } else {
       this.lastFrameTime = performance.now();
+      this.frameAccumulator = 0;
       if (this.bgWorker) this.bgWorker.postMessage('start');
       this._loop();
     }
@@ -411,11 +414,17 @@ class NesEmulator {
   _stepFrame(now) {
     if (!this.isRunning || this.isPaused || !this.nes) return;
 
-    const elapsed = now - this.lastFrameTime;
+    const frameDuration = 1000 / 60; // 16.6667ms
+    let elapsed = now - this.lastFrameTime;
 
-    // Target 60 FPS (~16.66ms per frame)
-    // 12.5ms threshold prevents dropping frames on 60Hz displays due to scheduler jitter
-    if (elapsed >= 12.5) {
+    // Guard against large lag spikes, freezing, or clock jumps
+    if (elapsed > 100 || elapsed < 0) {
+      elapsed = frameDuration;
+    }
+    this.lastFrameTime = now;
+    this.frameAccumulator += elapsed;
+
+    if (this.frameAccumulator >= frameDuration) {
       try {
         this.nes.frame();
         this.frameCount++;
@@ -428,22 +437,28 @@ class NesEmulator {
       } catch (err) {
         console.error('Erro na execução do frame NES:', err);
       }
-      this.lastFrameTime = now - (elapsed % 16.666);
-
-      // Update FPS counter every 1 second
-      if (now - this.fpsTimer >= 1000) {
-        this.fps = this.frameCount;
-        this.frameCount = 0;
-        this.fpsTimer = now;
-        if (this.onFPSUpdate) this.onFPSUpdate(this.fps);
+      this.frameAccumulator -= frameDuration;
+      // Cap accumulator to avoid accumulating backpressure / catch-up speedups
+      if (this.frameAccumulator > frameDuration) {
+        this.frameAccumulator = 0;
       }
+    }
+
+    // Update FPS counter every 1 second
+    if (now - this.fpsTimer >= 1000) {
+      this.fps = this.frameCount;
+      this.frameCount = 0;
+      this.fpsTimer = now;
+      if (this.onFPSUpdate) this.onFPSUpdate(this.fps);
     }
   }
 
   _loop() {
     if (!this.isRunning || this.isPaused) return;
 
-    this._stepFrame(performance.now());
+    if (!document.hidden) {
+      this._stepFrame(performance.now());
+    }
     this.animationFrameId = requestAnimationFrame(() => this._loop());
   }
 
