@@ -1496,3 +1496,89 @@ body.player2-mode .toast-container {
   background: rgba(255, 255, 255, 0.1);
   margin: 4px 0;
 }
+
+/* P2P Soft Reset & Reconnection UI */
+.btn-reset-p2p {
+  background: rgba(255, 171, 0, 0.15);
+  border: 1px solid rgba(255, 171, 0, 0.5);
+  color: #ffd740;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-p2p:hover {
+  background: rgba(255, 171, 0, 0.3);
+  border-color: #ffd740;
+  color: #fff;
+  box-shadow: 0 0 14px rgba(255, 171, 0, 0.6);
+}
+
+.btn-reset-p2p.resetting {
+  animation: pulse-reset 1s infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes pulse-reset {
+  from { box-shadow: 0 0 4px rgba(255, 171, 0, 0.3); opacity: 0.7; }
+  to { box-shadow: 0 0 16px rgba(255, 171, 0, 0.9); opacity: 1; }
+}
+
+.p2p-reconnect-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 14, 26, 0.88);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  animation: fadeIn 0.25s ease;
+}
+
+.reconnect-box {
+  background: #111627;
+  border: 2px solid var(--neon-cyan, #00e5ff);
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.35);
+  border-radius: 12px;
+  padding: 26px 32px;
+  text-align: center;
+  max-width: 440px;
+  width: 90%;
+}
+
+.reconnect-spinner {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 16px;
+  border: 4px solid rgba(0, 229, 255, 0.2);
+  border-top-color: var(--neon-cyan, #00e5ff);
+  border-radius: 50%;
+  animation: reconnectSpin 1s linear infinite;
+}
+
+@keyframes reconnectSpin {
+  to { transform: rotate(360deg); }
+}
+
+.reconnect-title {
+  font-family: var(--font-retro, monospace);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--neon-yellow, #ffd600);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.reconnect-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.reconnect-note {
+  font-size: 11px;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.4;
+}
+

@@ -54,6 +54,9 @@
       <button class="btn btn-primary" id="btnMultiplayer" title="Convidar amigo via link direto WebRTC">
         <span>🔗</span> <span>Jogar Online (P2P)</span>
       </button>
+      <button class="btn btn-reset-p2p" id="btnResetP2P" title="Resetar conexão P2P com a Sandy mantendo o jogo e o mesmo link (Atalho: F8)" style="display: none;">
+        <span>🔄</span> <span class="reset-p2p-label">Resetar P2P</span>
+      </button>
       <button class="btn btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
         <span>⏪</span> <span class="rewind-label">Rebobinar (3s)</span>
       </button>
@@ -95,6 +98,16 @@
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline></video>
+
+      <!-- P2P Reconnection Overlay (Sandy / Client) -->
+      <div class="p2p-reconnect-overlay" id="p2pReconnectOverlay" style="display: none;">
+        <div class="reconnect-box">
+          <div class="reconnect-spinner"></div>
+          <div class="reconnect-title">🔄 Sinal Instável</div>
+          <div class="reconnect-desc">Reconectando à transmissão do Hugo...</div>
+          <div class="reconnect-note" id="p2pReconnectSub">Aguarde um instante, a tela voltará sozinha sem você precisar atualizar.</div>
+        </div>
+      </div>
 
       <!-- Co-Pilot Active Banners -->
       <div class="copilot-banner host" id="copilotHostBanner" style="display: none;">
@@ -220,6 +233,9 @@
           <button class="btn btn-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
             ⚡ GERAR LINK DA SALA
           </button>
+          <button class="btn btn-reset-p2p" id="btnResetRoomModal" style="width: 100%; justify-content: center; padding: 10px; margin-top: 8px; display: none;">
+            🔄 RESETAR CONEXÃO DA SALA (F8)
+          </button>
 
           <div class="share-link-box" id="shareLinkBox" style="display: none; margin-top: 8px;">
             <label>Envie este link para ela:</label>
@@ -319,6 +335,11 @@
               <td><kbd>1</kbd> a <kbd>5</kbd> (❤️, 😂, 😱, 👏, 💀)</td>
             </tr>
             <tr>
+              <td><strong>RESETAR P2P (RECONECTAR) 🔄</strong></td>
+              <td>Botão no topo</td>
+              <td><kbd>F8</kbd></td>
+            </tr>
+            <tr>
               <td><strong>SALVAR CLIPE (10s) 📹</strong></td>
               <td>Botão no topo</td>
               <td><kbd>F9</kbd></td>
@@ -339,13 +360,13 @@
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
   <script src="jsnes.min.js"></script>
-  <script src="js/xbrz.js?v=17"></script>
-  <script src="js/emulator.js?v=17"></script>
-  <script src="js/input.js?v=17"></script>
-  <script src="js/multiplayer.js?v=17"></script>
-  <script src="js/chat.js?v=17"></script>
-  <script src="js/reactions.js?v=17"></script>
-  <script src="js/clip-recorder.js?v=17"></script>
-  <script src="js/app.js?v=17"></script>
+  <script src="js/xbrz.js?v=18"></script>
+  <script src="js/emulator.js?v=18"></script>
+  <script src="js/input.js?v=18"></script>
+  <script src="js/multiplayer.js?v=18"></script>
+  <script src="js/chat.js?v=18"></script>
+  <script src="js/reactions.js?v=18"></script>
+  <script src="js/clip-recorder.js?v=18"></script>
+  <script src="js/app.js?v=18"></script>
 </body>
 </html>

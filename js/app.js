@@ -74,6 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.display = 'none';
     remoteVideo.style.display = 'block';
 
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    if (btnResetP2P) btnResetP2P.style.display = 'none';
+
     // Close any open modals
     if (multiplayerModal) closeModal(multiplayerModal);
     if (controlsModal) closeModal(controlsModal);
@@ -274,6 +277,55 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       showToast('🎮 O controle voltou para você! Boa sorte!', 3000);
     }
+  };
+
+  const p2pReconnectOverlay = document.getElementById('p2pReconnectOverlay');
+  let wasPausedByReset = false;
+
+  multiplayer.onHostReady = (roomId) => {
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) {
+      btnResetP2P.style.display = 'inline-flex';
+      btnResetP2P.classList.remove('resetting');
+    }
+    if (btnResetRoomModal) {
+      btnResetRoomModal.style.display = 'inline-flex';
+      btnResetRoomModal.classList.remove('resetting');
+    }
+  };
+
+  multiplayer.onRemoteConnected = () => {
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.classList.remove('resetting');
+    if (btnResetRoomModal) btnResetRoomModal.classList.remove('resetting');
+
+    // Auto-unpause emulator when Sandy reconnects
+    if (wasPausedByReset && emulator.isRunning && emulator.isPaused) {
+      wasPausedByReset = false;
+      emulator.togglePause();
+      showToast('✨ Sandy reconectada com sucesso! Jogo despausado.', 4000);
+    } else {
+      showToast('✨ Player 2 conectado!', 3000);
+    }
+  };
+
+  multiplayer.onReconnecting = (attempts) => {
+    if (p2pReconnectOverlay) {
+      p2pReconnectOverlay.style.display = 'flex';
+      const sub = document.getElementById('p2pReconnectSub');
+      if (sub) {
+        sub.textContent = `Tentativa ${attempts} de reconexão... Aguarde, o vídeo voltará sozinho.`;
+      }
+    }
+  };
+
+  multiplayer.onReconnected = () => {
+    if (p2pReconnectOverlay) {
+      p2pReconnectOverlay.style.display = 'none';
+    }
+    showToast('✨ Conexão com o Hugo restabelecida com sucesso!', 3500);
   };
 
   // Initialize In-Game Overlay Chat
@@ -644,10 +696,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 6. Multiplayer Modal Actions
   const customRoomInput = document.getElementById('customRoomInput');
-  const savedCustomRoom = localStorage.getItem('duplinha_custom_room');
-  if (customRoomInput && savedCustomRoom) {
+  const savedCustomRoom = localStorage.getItem('duplinha_custom_room') || 'te-amo-sandy';
+  if (customRoomInput) {
     customRoomInput.value = savedCustomRoom;
   }
+
+  function executeP2PReset() {
+    if (multiplayer.mode !== 'HOST' || !multiplayer.roomId) {
+      showToast('Crie uma sala P2P primeiro para poder resetar!');
+      return;
+    }
+
+    // Auto-pause emulator so Sandy doesn't miss gameplay or die
+    if (emulator.isRunning && !emulator.isPaused) {
+      wasPausedByReset = true;
+      emulator.togglePause();
+      showToast('⏸️ Jogo pausado durante o reset.');
+    }
+
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.classList.add('resetting');
+    if (btnResetRoomModal) btnResetRoomModal.classList.add('resetting');
+
+    showToast('🔄 Reiniciando sala P2P... Jogo pausado. Aguardando a Sandy reconectar...', 4500);
+    multiplayer.resetHostRoom(() => emulator.getMediaStream());
+  }
+
+  const btnResetP2P = document.getElementById('btnResetP2P');
+  const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+  if (btnResetP2P) {
+    btnResetP2P.addEventListener('click', executeP2PReset);
+  }
+  if (btnResetRoomModal) {
+    btnResetRoomModal.addEventListener('click', () => {
+      closeModal(multiplayerModal);
+      executeP2PReset();
+    });
+  }
+
+  // F8 Shortcut for P2P Reset
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'F8') {
+      e.preventDefault();
+      executeP2PReset();
+    }
+  });
 
   document.getElementById('btnCreateRoom').addEventListener('click', () => {
     const customRoom = customRoomInput ? customRoomInput.value.trim() : '';
@@ -655,6 +749,11 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('duplinha_custom_room', customRoom);
     }
     multiplayer.createRoom(() => emulator.getMediaStream(), customRoom);
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.style.display = 'inline-flex';
+    if (btnResetRoomModal) btnResetRoomModal.style.display = 'inline-flex';
+
     const interval = setInterval(() => {
       if (multiplayer.roomId) {
         clearInterval(interval);
@@ -723,6 +822,21 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast(`Conectando à sala: ${roomIdFromHash}...`);
     multiplayer.joinRoom(roomIdFromHash);
   } else {
+    // Check if URL has ?host=te-amo-sandy
+    const urlParams = new URLSearchParams(window.location.search);
+    const hostParam = urlParams.get('host');
+    if (hostParam) {
+      const hostRoomName = hostParam.trim();
+      localStorage.setItem('duplinha_custom_room', hostRoomName);
+      if (customRoomInput) customRoomInput.value = hostRoomName;
+      setTimeout(() => {
+        multiplayer.createRoom(() => emulator.getMediaStream(), hostRoomName);
+        if (btnResetP2P) btnResetP2P.style.display = 'inline-flex';
+        if (btnResetRoomModal) btnResetRoomModal.style.display = 'inline-flex';
+        showToast(`🏠 Sala Host criada automaticamente: #${hostRoomName}`, 4000);
+      }, 600);
+    }
+
     // Automatically load built-in Pong so the screen is ready to play immediately!
     fetch('roms/pong.nes')
       .then(res => res.arrayBuffer())

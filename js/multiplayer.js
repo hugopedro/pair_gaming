@@ -29,17 +29,30 @@ class MultiplayerManager {
     this.currentRatio = '4-3';
     this.autoReconnect = true;
     this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 60; // Up to 2 minutes of continuous retries
     this.getLocalMediaStream = null;
+    this.customRoomId = '';
+    this.isResetting = false;
+    this.hostResetRetryCount = 0;
+    this.onHostReady = null;
+    this.onRemoteConnected = null;
+    this.onReconnecting = null;
+    this.onReconnected = null;
   }
 
-  createRoom(getLocalMediaStream, customRoomId = '') {
+  createRoom(getLocalMediaStream, customRoomId = '', isReset = false) {
     this._cleanup();
     this.mode = 'HOST';
     this.getLocalMediaStream = getLocalMediaStream;
+    this.isResetting = isReset;
+
+    if (customRoomId && customRoomId.trim()) {
+      this.customRoomId = customRoomId.trim();
+    }
 
     let targetId = '';
-    if (customRoomId && customRoomId.trim()) {
-      targetId = customRoomId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+    if (this.customRoomId) {
+      targetId = this.customRoomId.toLowerCase().replace(/[^a-z0-9_-]/g, '-');
       if (!targetId.startsWith('duplinha-')) {
         targetId = `duplinha-${targetId}`;
       }
@@ -53,14 +66,19 @@ class MultiplayerManager {
     });
 
     if (this.onStatusChange) {
-      this.onStatusChange('Criando sala...', 'WAITING');
+      this.onStatusChange(isReset ? 'Reiniciando sala...' : 'Criando sala...', 'WAITING');
     }
 
     this.peer.on('open', (id) => {
       this.roomId = id;
-      console.log('Sala Host criada com ID:', id);
+      this.hostResetRetryCount = 0;
+      this.isResetting = false;
+      console.log('Sala Host pronta com ID:', id);
       if (this.onStatusChange) {
         this.onStatusChange('Aguardando Player 2...', 'WAITING');
+      }
+      if (this.onHostReady) {
+        this.onHostReady(id);
       }
     });
 
@@ -73,6 +91,19 @@ class MultiplayerManager {
     this.peer.on('error', (err) => {
       console.error('Erro no PeerJS Host:', err);
       if (err.type === 'unavailable-id') {
+        // If resetting or using custom room ID, retry the SAME ID up to 4 times (PeerJS cloud server unregisters it in ~1-2s)
+        if (this.customRoomId && this.hostResetRetryCount < 4) {
+          this.hostResetRetryCount++;
+          console.warn(`ID de sala '${targetId}' ainda desvinculando no servidor. Tentativa ${this.hostResetRetryCount}/4 em 1.5s...`);
+          if (this.onStatusChange) {
+            this.onStatusChange(`Reabrindo sala (${this.hostResetRetryCount}/4)...`, 'WAITING');
+          }
+          setTimeout(() => {
+            this.createRoom(getLocalMediaStream, this.customRoomId, true);
+          }, 1500);
+          return;
+        }
+
         const fallbackId = `${targetId}-${Math.random().toString(36).substring(2, 6)}`;
         console.warn(`ID de sala '${targetId}' ocupado. Tentando ID único: ${fallbackId}...`);
         this.createRoom(getLocalMediaStream, fallbackId);
@@ -84,12 +115,23 @@ class MultiplayerManager {
     });
   }
 
+  resetHostRoom(getLocalMediaStream) {
+    if (this.mode !== 'HOST') return;
+    this.hostResetRetryCount = 0;
+    const targetRoom = this.customRoomId || (this.roomId ? this.roomId.replace(/^duplinha-/, '') : '');
+    console.log('Resetando sala Host mantendo ID alvo:', targetRoom);
+    this.createRoom(getLocalMediaStream || this.getLocalMediaStream, targetRoom, true);
+  }
+
   _setupHostDataConnection(getLocalMediaStream) {
     this.conn.on('open', () => {
       this.isConnected = true;
       console.log('Player 2 conectado no canal de dados!');
       if (this.onStatusChange) {
         this.onStatusChange('Player 2 Conectado!', 'ONLINE');
+      }
+      if (this.onRemoteConnected) {
+        this.onRemoteConnected();
       }
 
       // Initiate WebRTC Call to stream Canvas + WebAudio to Player 2
@@ -180,6 +222,9 @@ class MultiplayerManager {
         if (this.onRemoteStream) {
           this.onRemoteStream(remoteStream);
         }
+        if (this.onReconnected) {
+          this.onReconnected();
+        }
       });
 
       incomingCall.on('error', (e) => console.error('Erro na transmissão:', e));
@@ -187,6 +232,24 @@ class MultiplayerManager {
 
     this.peer.on('error', (err) => {
       console.error('Erro no PeerJS Client:', err);
+      // Auto-retry when host is restarting, resetting room, or temporary network blip
+      if (this.mode === 'CLIENT' && this.autoReconnect && this.roomId &&
+          (err.type === 'peer-unavailable' || err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error' || err.type === 'socket-closed')) {
+        this.reconnectAttempts++;
+        if (this.onStatusChange) {
+          this.onStatusChange(`Reconectando ao Host (${this.reconnectAttempts})...`, 'WAITING');
+        }
+        if (this.onReconnecting) {
+          this.onReconnecting(this.reconnectAttempts);
+        }
+        setTimeout(() => {
+          if (!this.isConnected && this.mode === 'CLIENT') {
+            this.joinRoom(this.roomId);
+          }
+        }, 2000);
+        return;
+      }
+
       if (this.onStatusChange) {
         this.onStatusChange('Erro ao conectar na sala.', 'OFFLINE');
       }
@@ -200,6 +263,9 @@ class MultiplayerManager {
       console.log('Conectado ao Host com sucesso!');
       if (this.onStatusChange) {
         this.onStatusChange('Conectado ao Host (Player 2)', 'ONLINE');
+      }
+      if (this.onReconnected) {
+        this.onReconnected();
       }
       this._startPingMonitor();
       this._startInputSync();
@@ -231,17 +297,20 @@ class MultiplayerManager {
       this._stopPingMonitor();
       this._stopInputSync();
 
-      if (this.autoReconnect && this.mode === 'CLIENT' && this.roomId && this.reconnectAttempts < 5) {
+      if (this.autoReconnect && this.mode === 'CLIENT' && this.roomId && this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
         if (this.onStatusChange) {
-          this.onStatusChange(`Conexão oscilou. Reconectando (${this.reconnectAttempts}/5)...`, 'WAITING');
+          this.onStatusChange(`Conexão oscilou. Reconectando (${this.reconnectAttempts})...`, 'WAITING');
+        }
+        if (this.onReconnecting) {
+          this.onReconnecting(this.reconnectAttempts);
         }
         setTimeout(() => {
           if (!this.isConnected && this.mode === 'CLIENT') {
             console.log(`Reconectando à sala ${this.roomId}...`);
             this.joinRoom(this.roomId);
           }
-        }, 2500);
+        }, 2000);
       } else {
         if (this.onStatusChange) {
           this.onStatusChange('Desconectado do Host', 'OFFLINE');
