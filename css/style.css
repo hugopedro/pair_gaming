@@ -343,16 +343,186 @@ html, body {
   color: var(--neon-cyan);
 }
 
-/* Main Display Area */
+/* Main Display Area with Flanking Side Panels */
 .main-viewport {
   flex: 1;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   position: relative;
   overflow: hidden;
   background: radial-gradient(circle at center, #151828 0%, #080910 100%);
-  padding: 12px;
+  padding: 10px 16px;
+  min-height: 0;
+}
+
+/* Flanking Arcade Side Panels */
+.arcade-side-panel {
+  width: 240px;
+  flex: 0 0 240px;
+  height: 100%;
+  max-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 10px;
+  background: rgba(14, 18, 32, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 229, 255, 0.04);
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
+  transition: all 0.25s ease;
+}
+
+.arcade-side-panel::-webkit-scrollbar {
+  width: 5px;
+}
+.arcade-side-panel::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.arcade-side-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.4);
+  border-radius: 4px;
+}
+.arcade-side-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-cyan);
+}
+
+.panel-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-group-title {
+  font-family: var(--font-retro);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: #7e8b9e;
+  text-transform: uppercase;
+  padding: 4px 6px 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.console-switcher-vertical {
+  display: flex;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.console-switcher-vertical .btn-console {
+  flex: 1;
+  justify-content: center;
+  padding: 7px 2px;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* Arcade Side Buttons ("Bom Tamanho") */
+.btn-side {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  text-align: left;
+  border-radius: 8px;
+  background: #181e33;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-side-icon {
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.btn-side-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.btn-side:hover {
+  background: #242d4b;
+  border-color: var(--neon-cyan);
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-side:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.side-btn-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.side-btn-row .btn-side {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 8px;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.btn-multiplayer-glow {
+  background: linear-gradient(135deg, rgba(0, 176, 255, 0.2), rgba(123, 31, 162, 0.28));
+  border-color: #00e5ff;
+  color: #e0f7fa;
+}
+
+.btn-multiplayer-glow:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.4), rgba(156, 39, 176, 0.5));
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.5);
+  color: #fff;
+}
+
+.btn-fullscreen-side {
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.btn-fullscreen-side:hover {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.45);
+}
+
+.arcade-side-panel .btn-reset-p2p {
+  width: 100%;
 }
 
 .screen-cabinet {
@@ -364,7 +534,7 @@ html, body {
   border-radius: 12px;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.15);
   border: 3px solid #1c2236;
-  max-width: 100%;
+  max-width: calc(100% - 516px);
   max-height: 100%;
   aspect-ratio: 4 / 3;
   transition: aspect-ratio 0.25s ease;
@@ -823,17 +993,69 @@ body.ratio-original #remoteVideo {
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* Responsive Layouts for Arcade Panels */
+@media (max-width: 1280px) {
+  .arcade-side-panel {
+    width: 195px;
+    flex: 0 0 195px;
+    padding: 10px 6px;
+    gap: 8px;
+  }
+  .btn-side {
+    min-height: 38px;
+    padding: 8px 9px;
+    font-size: 11.5px;
+    gap: 8px;
+  }
+  .screen-cabinet {
+    max-width: calc(100% - 410px);
+  }
+}
+
+@media (max-width: 960px) {
+  .main-viewport {
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 10px;
+    gap: 12px;
+  }
+  .screen-cabinet {
+    max-width: 100%;
+    width: 100%;
+    height: auto;
+  }
+  .arcade-side-panel {
+    width: 100%;
+    flex: 0 0 auto;
+    max-height: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .panel-group {
+    display: contents;
+  }
+  .panel-group-title {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 768px) {
   .brand-title { display: none; }
   .status-pill { padding: 4px 8px; font-size: 9px; }
-  .btn span { display: none; }
-  .btn { padding: 7px 9px; }
+  .bottom-controls .btn span { display: none; }
+  .bottom-controls .btn { padding: 7px 9px; }
 }
 
 /* Fullscreen Native Clean Edge-to-Edge */
 :fullscreen,
 :-webkit-full-screen {
   background: #000 !important;
+}
+
+:fullscreen .arcade-side-panel,
+:-webkit-full-screen .arcade-side-panel {
+  display: none !important;
 }
 
 .screen-cabinet:fullscreen,
@@ -868,7 +1090,8 @@ body.player2-mode {
 
 body.player2-mode .top-nav,
 body.player2-mode .bottom-bar,
-body.player2-mode .touch-controls {
+body.player2-mode .touch-controls,
+body.player2-mode .arcade-side-panel {
   display: none !important;
 }
 
