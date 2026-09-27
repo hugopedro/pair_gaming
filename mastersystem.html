@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/sms-style.css?v=11">
+  <link rel="stylesheet" href="css/sms-style.css?v=20">
 </head>
 <body>
 
@@ -35,57 +35,83 @@
         <span style="color: #38bdf8; font-weight: bold;">✨ xBRZ 6x</span>
       </div>
     </div>
-
-    <div class="nav-actions">
-      <!-- Console Switcher -->
-      <div class="console-switcher">
-        <a href="index.html" class="btn-console btn-nes" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
-        <a href="mastersystem.html" class="btn-console btn-sega active" title="Emulador Sega Master System"><span>🔵</span> <span>Master System</span></a>
-        <a href="snes.html" class="btn-console btn-snes" title="Emulador Super Nintendo"><span>🟣</span> <span>SNES</span></a>
-      </div>
-
-      <input type="file" id="romInput" accept=".sms,.bin" style="display: none;">
-      <button class="btn btn-sega-primary" id="btnLoadRom" title="Carregar arquivo .sms ou .bin do seu computador">
-        <span>📁</span> <span>Carregar ROM</span>
-      </button>
-      <button class="btn btn-sega-primary" id="btnMultiplayer" title="Convidar amiga via link direto WebRTC">
-        <span>🔗</span> <span>Jogar Online (P2P)</span>
-      </button>
-      <button class="btn btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
-        <span>⏪</span> <span class="rewind-label">Rebobinar (3s)</span>
-      </button>
-      <button class="btn btn-copilot" id="btnCopilotTop" title="Assumir o controle do boneco dela temporariamente para passar fase (Atalho: C / R3 no Controle)">
-        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
-      </button>
-      <button class="btn btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
-        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
-      </button>
-      <button class="btn" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
-        <span>📐</span> <span id="aspectRatioLabel">16:9 Total 🌟</span>
-      </button>
-      <button class="btn" id="btnControls" title="Ver mapeamento do controle Xbox 360 no Master System">
-        <span>🎮</span> <span>Controles (Xbox 360)</span>
-      </button>
-      <button class="btn btn-clip-save" id="btnClipTop" title="Gravar e baixar clipe dos últimos 10 segundos em vídeo (Atalho: F9)">
-        <span>📹</span> <span>Clipe (10s)</span>
-      </button>
-      <button class="btn btn-pip" id="btnPipTop" title="Picture-in-Picture (Janela Flutuante - Atalho: P)">
-        <span>📺</span> <span class="pip-label">PiP</span>
-      </button>
-      <button class="btn" id="btnFullscreen" title="Jogar em tela cheia">
-        <span>⛶</span>
-      </button>
-    </div>
   </header>
 
-  <!-- Main Viewport (Screen Cabinet) -->
+  <!-- Main Viewport with Flanking Arcade Side Panels -->
   <main class="main-viewport">
+    <!-- Left Arcade Panel: Game, Multiplayer & Co-op -->
+    <aside class="arcade-side-panel left-panel">
+      <!-- Consoles Switcher -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>🕹️</span> <span>SISTEMA</span></div>
+        <div class="console-switcher-vertical">
+          <a href="index.html" class="btn-console btn-nes" title="Emulador NES"><span>🔴</span> <span>NES</span></a>
+          <a href="mastersystem.html" class="btn-console btn-sega active" title="Emulador Sega Master System"><span>🔵</span> <span>Master</span></a>
+          <a href="snes.html" class="btn-console btn-snes" title="Emulador Super Nintendo"><span>🟣</span> <span>SNES</span></a>
+        </div>
+      </div>
+
+      <!-- Jogos & ROMs -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>📁</span> <span>JOGO</span></div>
+        <input type="file" id="romInput" accept=".sms,.bin" style="display: none;">
+        <button class="btn btn-side btn-sega-primary" id="btnLoadRom" title="Carregar arquivo .sms ou .bin do seu computador">
+          <span class="btn-side-icon">📁</span>
+          <span class="btn-side-text">Carregar ROM</span>
+        </button>
+      </div>
+
+      <!-- Multiplayer Online -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>🌐</span> <span>MULTIPLAYER P2P</span></div>
+        <button class="btn btn-side btn-multiplayer-glow" id="btnMultiplayer" title="Convidar amiga via link direto WebRTC">
+          <span class="btn-side-icon">🔗</span>
+          <span class="btn-side-text">Jogar Online (P2P)</span>
+        </button>
+        <button class="btn btn-side btn-reset-p2p" id="btnResetP2P" title="Resetar conexão P2P com a Sandy mantendo o jogo e o mesmo link (Atalho: F8)" style="display: none;">
+          <span class="btn-side-icon">🔄</span>
+          <span class="btn-side-text reset-p2p-label">Resetar P2P (F8)</span>
+        </button>
+      </div>
+
+      <!-- Co-op & Controles -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>🤝</span> <span>CO-OP & CONTROLE</span></div>
+        <button class="btn btn-side btn-rewind" id="btnRewindTop" title="Rebobinar jogo 3 segundos no tempo (Atalho: Backspace ou R / L3 no Controle)">
+          <span class="btn-side-icon">⏪</span>
+          <span class="btn-side-text rewind-label">Rebobinar (3s)</span>
+        </button>
+        <button class="btn btn-side btn-copilot" id="btnCopilotTop" title="Assumir o controle do boneco dela temporariamente para passar fase (Atalho: C / R3 no Controle)">
+          <span class="btn-side-icon">🤝</span>
+          <span class="btn-side-text copilot-label">Passa o Controle</span>
+        </button>
+        <button class="btn btn-side btn-swap-p1p2" id="btnSwapP1P2Top" title="Alternar quem comanda o Player 1 (Você ou Ela)">
+          <span class="btn-side-icon swap-icon">🎮</span>
+          <span class="btn-side-text swap-label">Ela controla: P2</span>
+        </button>
+        <button class="btn btn-side" id="btnControls" title="Ver mapeamento do controle Xbox 360 no Master System">
+          <span class="btn-side-icon">🎮</span>
+          <span class="btn-side-text">Controles (Xbox)</span>
+        </button>
+      </div>
+    </aside>
+
     <div class="screen-cabinet">
       <!-- Host / Local Master System Canvas -->
       <canvas id="smsCanvas" width="1280" height="720"></canvas>
 
       <!-- Client P2P Live Stream Video -->
       <video id="remoteVideo" autoplay playsinline style="display: none;"></video>
+
+      <!-- P2P Reconnection Overlay (Sandy / Client) -->
+      <div class="p2p-reconnect-overlay" id="p2pReconnectOverlay" style="display: none;">
+        <div class="reconnect-box">
+          <div class="reconnect-spinner"></div>
+          <div class="reconnect-title">🔄 Sinal Instável</div>
+          <div class="reconnect-desc">Reconectando à transmissão do Hugo...</div>
+          <div class="reconnect-note" id="p2pReconnectSub">Aguarde um instante, a tela voltará sozinha sem você precisar atualizar.</div>
+        </div>
+      </div>
 
       <!-- Co-Pilot Active Banners -->
       <div class="copilot-banner host" id="copilotHostBanner" style="display: none;">
@@ -117,6 +143,56 @@
         </button>
       </div>
     </div>
+
+    <!-- Right Arcade Panel: Emulation, Video & Tools -->
+    <aside class="arcade-side-panel right-panel">
+      <!-- Emulação -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>⚡</span> <span>EMULAÇÃO</span></div>
+        <button class="btn btn-side" id="btnPause" title="Pausar jogo">
+          <span class="btn-side-icon">⏸️</span>
+          <span class="btn-side-text">Pausar Jogo</span>
+        </button>
+        <button class="btn btn-side" id="btnReset" title="Reiniciar jogo atual">
+          <span class="btn-side-icon">🔄</span>
+          <span class="btn-side-text">Reiniciar Jogo</span>
+        </button>
+        <button class="btn btn-side" id="btnSaveState" title="Salvar progresso na memória local (Atalho: LB)">
+          <span class="btn-side-icon">💾</span>
+          <span class="btn-side-text">Salvar Jogo (LB)</span>
+        </button>
+        <button class="btn btn-side" id="btnLoadState" title="Carregar progresso salvo (Atalho: RB)">
+          <span class="btn-side-icon">📂</span>
+          <span class="btn-side-text">Carregar Jogo (RB)</span>
+        </button>
+      </div>
+
+      <!-- Vídeo e Imagem -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>📺</span> <span>VÍDEO & TELA</span></div>
+        <button class="btn btn-side" id="btnAspectRatio" title="Alternar proporção da tela (SuperWide 16:9 Inteligente, 4:3 TV CRT, 16:10 Wide Suave, 16:9 Total)">
+          <span class="btn-side-icon">📐</span>
+          <span class="btn-side-text" id="aspectRatioLabel">16:9 Total 🌟</span>
+        </button>
+      </div>
+
+      <!-- Ferramentas & Janela -->
+      <div class="panel-group">
+        <div class="panel-group-title"><span>🛠️</span> <span>FERRAMENTAS</span></div>
+        <button class="btn btn-side btn-clip-save" id="btnClipTop" title="Gravar e baixar clipe dos últimos 10 segundos em vídeo (Atalho: F9)">
+          <span class="btn-side-icon">📹</span>
+          <span class="btn-side-text">Clipe (10s - F9)</span>
+        </button>
+        <button class="btn btn-side btn-pip" id="btnPipTop" title="Picture-in-Picture (Janela Flutuante - Atalho: P)">
+          <span class="btn-side-icon">📺</span>
+          <span class="btn-side-text pip-label">PiP Flutuante (P)</span>
+        </button>
+        <button class="btn btn-side btn-fullscreen-side" id="btnFullscreen" title="Jogar em tela cheia">
+          <span class="btn-side-icon">⛶</span>
+          <span class="btn-side-text">Tela Cheia</span>
+        </button>
+      </div>
+    </aside>
 
     <!-- On-screen Virtual Touch Gamepad for Mobile/Tablets -->
     <div class="touch-controls" id="touchControls">
@@ -156,27 +232,6 @@
     </div>
 
     <div class="bottom-controls">
-      <button class="btn btn-rewind" id="btnRewindBottom" title="Rebobinar jogo 3 segundos (Backspace ou R / L3 no Controle)">
-        <span>⏪</span> Rebobinar (3s)
-      </button>
-      <button class="btn btn-copilot" id="btnCopilotBottom" title="Passar o controle / Co-Pilot (C / R3 no Controle)">
-        <span>🤝</span> <span class="copilot-label">Passa o Controle</span>
-      </button>
-      <button class="btn btn-swap-p1p2" id="btnSwapP1P2" title="Alternar quem comanda o Player 1 (Você ou Ela)">
-        <span class="swap-icon">🎮</span> <span class="swap-label">Ela controla: P2</span>
-      </button>
-      <button class="btn" id="btnPause" title="Pausar emulação">
-        <span>⏸️</span> Pausar
-      </button>
-      <button class="btn" id="btnReset" title="Reiniciar jogo atual">
-        <span>🔄</span> Reset
-      </button>
-      <button class="btn" id="btnSaveState" title="Salvar progresso na memória local (LB)">
-        <span>💾</span> Salvar
-      </button>
-      <button class="btn" id="btnLoadState" title="Carregar progresso salvo (RB)">
-        <span>📂</span> Carregar
-      </button>
       <button class="btn" id="btnTouchToggle" title="Exibir botões na tela para celular/tablet">
         <span>📱</span> Toque
       </button>
@@ -209,6 +264,9 @@
           </div>
           <button class="btn btn-sega-primary" id="btnCreateRoom" style="width: 100%; justify-content: center; padding: 10px;">
             ⚡ GERAR LINK DA SALA
+          </button>
+          <button class="btn btn-reset-p2p" id="btnResetRoomModal" style="width: 100%; justify-content: center; padding: 10px; margin-top: 8px; display: none;">
+            🔄 RESETAR CONEXÃO DA SALA (F8)
           </button>
 
           <div class="share-link-box" id="shareLinkBox" style="display: none; margin-top: 8px;">
@@ -328,14 +386,14 @@
 
   <!-- Scripts -->
   <script src="peerjs.min.js"></script>
-  <script src="js/sms.min.js?v=11"></script>
-  <script src="js/xbrz.js?v=11"></script>
-  <script src="js/sms-emulator.js?v=11"></script>
-  <script src="js/input.js?v=16"></script>
-  <script src="js/multiplayer.js?v=16"></script>
-  <script src="js/chat.js?v=11"></script>
-  <script src="js/reactions.js?v=11"></script>
-  <script src="js/clip-recorder.js?v=11"></script>
-  <script src="js/sms-app.js?v=11"></script>
+  <script src="js/sms.min.js?v=20"></script>
+  <script src="js/xbrz.js?v=20"></script>
+  <script src="js/sms-emulator.js?v=20"></script>
+  <script src="js/input.js?v=20"></script>
+  <script src="js/multiplayer.js?v=20"></script>
+  <script src="js/chat.js?v=20"></script>
+  <script src="js/reactions.js?v=20"></script>
+  <script src="js/clip-recorder.js?v=20"></script>
+  <script src="js/sms-app.js?v=20"></script>
 </body>
 </html>

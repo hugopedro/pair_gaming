@@ -80,6 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.display = 'none';
     remoteVideo.style.display = 'block';
 
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    if (btnResetP2P) btnResetP2P.style.display = 'none';
+
     // Close any open modals
     if (multiplayerModal) closeModal(multiplayerModal);
     if (controlsModal) closeModal(controlsModal);
@@ -157,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  let lastRemoteInputTime = Date.now();
+  const hostRemotePressed = new Set();
+
   function toggleCoPilot() {
     coPilotActive = !coPilotActive;
     updateCoPilotUI();
@@ -164,6 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (multiplayer && multiplayer.mode === 'HOST') {
       multiplayer.sendCopilotStatus(coPilotActive);
     }
+
+    // CRITICAL: Cleanly release ALL buttons on both players to prevent any stuck direction
+    if (emulator && emulator.releaseAllButtons) {
+      emulator.releaseAllButtons();
+    }
+    hostRemotePressed.clear();
+
     if (coPilotActive) {
       showToast('🤝 Modo Co-Pilot Ativo: Você assumiu o controle do boneco dela!');
     } else {
@@ -171,14 +184,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Safety watchdog on host: if remote client stops sending inputs/sync for > 400ms, force release all buttons
+  setInterval(() => {
+    if (!coPilotActive && Date.now() - lastRemoteInputTime > 400) {
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      if (hostRemotePressed.size > 0 || (emulator && emulator.releaseAllButtons)) {
+        if (emulator && emulator.releaseAllButtons) {
+          emulator.releaseAllButtons(targetPlayer);
+        }
+        hostRemotePressed.clear();
+      }
+    }
+  }, 100);
+
   const multiplayer = new MultiplayerManager({
-    onRemoteInput: (btn, isDown) => {
+    onRemoteInput: (btn, isDown, activeList) => {
+      lastRemoteInputTime = Date.now();
       // Host receives Client input -> If Co-Pilot is active, ignore remote inputs so girlfriend does not fight movements
       if (coPilotActive) return;
 
       const targetPlayer = remoteControlsP1 ? 1 : 2;
-      if (isDown) emulator.buttonDown(targetPlayer, btn);
-      else emulator.buttonUp(targetPlayer, btn);
+      if (isDown) {
+        hostRemotePressed.add(btn);
+        emulator.buttonDown(targetPlayer, btn);
+      } else {
+        hostRemotePressed.delete(btn);
+        emulator.buttonUp(targetPlayer, btn);
+      }
+
+      // Self-healing: reconcile any button that was released on client but missed on host
+      if (Array.isArray(activeList)) {
+        const activeSet = new Set(activeList);
+        for (const pressedBtn of Array.from(hostRemotePressed)) {
+          if (!activeSet.has(pressedBtn)) {
+            hostRemotePressed.delete(pressedBtn);
+            emulator.buttonUp(targetPlayer, pressedBtn);
+          }
+        }
+      }
+    },
+    onRemoteSync: (activeList) => {
+      lastRemoteInputTime = Date.now();
+      if (coPilotActive) return;
+
+      const targetPlayer = remoteControlsP1 ? 1 : 2;
+      const activeSet = new Set(Array.isArray(activeList) ? activeList : []);
+
+      // Full exhaustive reconciliation across SMS buttons
+      const allSmsButtons = [
+        'BUTTON_1', 'BUTTON_2', 'BUTTON_A', 'BUTTON_B', 'BUTTON_PAUSE', 'BUTTON_START',
+        'BUTTON_UP', 'BUTTON_DOWN', 'BUTTON_LEFT', 'BUTTON_RIGHT'
+      ];
+
+      for (const btn of allSmsButtons) {
+        if (activeSet.has(btn)) {
+          hostRemotePressed.add(btn);
+          emulator.buttonDown(targetPlayer, btn);
+        } else {
+          if (hostRemotePressed.has(btn)) {
+            hostRemotePressed.delete(btn);
+          }
+          emulator.buttonUp(targetPlayer, btn);
+        }
+      }
     },
     onRemoteStream: (stream) => {
       // Client receives Host's AV stream -> display on remoteVideo in fullscreen
@@ -208,11 +276,63 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clientBanner) {
       clientBanner.style.display = active ? 'flex' : 'none';
     }
+    if (multiplayer && multiplayer.clientActiveButtons) {
+      multiplayer.clientActiveButtons.clear();
+    }
     if (active) {
       showToast('🤝 Seu amigo assumiu o controle para te ajudar! Aguarde um instante...', 4000);
     } else {
       showToast('🎮 O controle voltou para você! Boa sorte!', 3000);
     }
+  };
+
+  const p2pReconnectOverlay = document.getElementById('p2pReconnectOverlay');
+  let wasPausedByReset = false;
+
+  multiplayer.onHostReady = (roomId) => {
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) {
+      btnResetP2P.style.display = 'inline-flex';
+      btnResetP2P.classList.remove('resetting');
+    }
+    if (btnResetRoomModal) {
+      btnResetRoomModal.style.display = 'inline-flex';
+      btnResetRoomModal.classList.remove('resetting');
+    }
+  };
+
+  multiplayer.onRemoteConnected = () => {
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.classList.remove('resetting');
+    if (btnResetRoomModal) btnResetRoomModal.classList.remove('resetting');
+
+    // Auto-unpause emulator when Sandy reconnects
+    if (wasPausedByReset && emulator.isRunning && emulator.isPaused) {
+      wasPausedByReset = false;
+      emulator.togglePause();
+      showToast('✨ Sandy reconectada com sucesso! Jogo despausado.', 4000);
+    } else {
+      showToast('✨ Player 2 conectado!', 3000);
+    }
+  };
+
+  multiplayer.onReconnecting = (attempts) => {
+    if (p2pReconnectOverlay) {
+      p2pReconnectOverlay.style.display = 'flex';
+      const sub = document.getElementById('p2pReconnectSub');
+      if (sub) {
+        sub.textContent = `Tentativa ${attempts} de reconexão... Aguarde, o vídeo voltará sozinho.`;
+      }
+    }
+  };
+
+  multiplayer.onReconnected = () => {
+    if (p2pReconnectOverlay) {
+      p2pReconnectOverlay.style.display = 'none';
+    }
+    showToast('✨ Conexão com o Hugo restabelecida com sucesso!', 3500);
   };
 
   // Initialize In-Game Overlay Chat
@@ -497,11 +617,27 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.btn-swap-p1p2').forEach(btn => {
     btn.addEventListener('click', () => {
       remoteControlsP1 = !remoteControlsP1;
+      if (emulator && emulator.releaseAllButtons) emulator.releaseAllButtons();
       updatePlayerRolesUI();
       showToast(remoteControlsP1 
         ? '👑 Sandy agora controla o Player 1! (Você comanda o P2)' 
         : '🎮 Modo Normal: Hugo comanda o P1 e Sandy comanda o P2');
     });
+  });
+
+  const btnPipTop = document.getElementById('btnPipTop');
+  if (btnPipTop) {
+    btnPipTop.addEventListener('click', () => {
+      togglePictureInPicture();
+    });
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+    if (e.code === 'KeyP') {
+      e.preventDefault();
+      togglePictureInPicture();
+    }
   });
 
   document.getElementById('btnTouchToggle').addEventListener('click', () => {
@@ -517,6 +653,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // P2P Soft Reset (F8)
+  function executeP2PReset() {
+    if (multiplayer.mode !== 'HOST' || !multiplayer.roomId) {
+      showToast('Crie uma sala P2P primeiro para poder resetar!');
+      return;
+    }
+
+    // Auto-pause emulator so Sandy doesn't miss gameplay or die
+    if (emulator.isRunning && !emulator.isPaused) {
+      wasPausedByReset = true;
+      emulator.togglePause();
+      showToast('⏸️ Jogo pausado durante o reset.');
+    }
+
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.classList.add('resetting');
+    if (btnResetRoomModal) btnResetRoomModal.classList.add('resetting');
+
+    showToast('🔄 Reiniciando sala P2P... Jogo pausado. Aguardando a Sandy reconectar...', 4500);
+    multiplayer.resetHostRoom(() => emulator.getMediaStream());
+  }
+
+  const btnResetP2P = document.getElementById('btnResetP2P');
+  const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+  if (btnResetP2P) {
+    btnResetP2P.addEventListener('click', executeP2PReset);
+  }
+  if (btnResetRoomModal) {
+    btnResetRoomModal.addEventListener('click', () => {
+      closeModal(multiplayerModal);
+      executeP2PReset();
+    });
+  }
+
+  // F8 Shortcut for P2P Reset
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'F8') {
+      e.preventDefault();
+      executeP2PReset();
+    }
+  });
+
   // 6. Multiplayer Modal Actions
   const customRoomInput = document.getElementById('customRoomInput');
   const savedCustomRoom = localStorage.getItem('duplinha_custom_room');
@@ -529,6 +708,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (customRoom) {
       localStorage.setItem('duplinha_custom_room', customRoom);
     }
+    const btnResetP2P = document.getElementById('btnResetP2P');
+    const btnResetRoomModal = document.getElementById('btnResetRoomModal');
+    if (btnResetP2P) btnResetP2P.style.display = 'inline-flex';
+    if (btnResetRoomModal) btnResetRoomModal.style.display = 'inline-flex';
+
     multiplayer.createRoom(() => emulator.getMediaStream(), customRoom);
     const interval = setInterval(() => {
       if (multiplayer.roomId) {
@@ -556,18 +740,20 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     const roomId = inputVal.includes('#') ? inputVal.split('#')[1] : inputVal;
+    setupPlayer2Mode();
     multiplayer.joinRoom(roomId);
     closeModal(multiplayerModal);
   });
 
-  // Auto-connect if URL has #room-id
-  const hash = window.location.hash.substring(1);
-  if (hash && hash.startsWith('duplinha-')) {
+  // Auto-connect if URL has #room-id (e.g. #te-amo-sandy)
+  if (window.location.hash && window.location.hash.length > 1) {
+    const hash = window.location.hash.substring(1);
     console.log('Detectado link de convite Master System:', hash);
+    setupPlayer2Mode();
+    showToast(`Conectando à sala ${hash}...`);
     setTimeout(() => {
       multiplayer.joinRoom(hash);
-      showToast(`Conectando à sala ${hash}...`);
-    }, 500);
+    }, 300);
   }
 
   // Modal helpers

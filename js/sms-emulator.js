@@ -533,6 +533,25 @@ class SmsEmulator {
     }
   }
 
+  releaseAllButtons(player = null) {
+    if (!this.sms) return;
+    if (player === 1) {
+      this.sms.joystick |= 0x003F; // Release P1 buttons (bits 0-5)
+      this.turboA[1] = false;
+      this.turboB[1] = false;
+    } else if (player === 2) {
+      this.sms.joystick |= 0x0FC0; // Release P2 buttons (bits 6-11)
+      this.turboA[2] = false;
+      this.turboB[2] = false;
+    } else {
+      this.sms.joystick = 0xFFFF; // Release all (Active LOW: 1 = released)
+      this.turboA[1] = false;
+      this.turboB[1] = false;
+      this.turboA[2] = false;
+      this.turboB[2] = false;
+    }
+  }
+
   setVolume(vol) {
     this.volume = Math.max(0, Math.min(1, vol));
     if (this.audioGain && !this.isMuted) {
