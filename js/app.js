@@ -156,6 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const hostRemotePressed = new Set();
+  const hostCopilotPressed = new Set();
+  let lastRemoteInputTime = Date.now();
+
   function toggleCoPilot() {
     coPilotActive = !coPilotActive;
     updateCoPilotUI();
@@ -163,29 +167,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (multiplayer && multiplayer.mode === 'HOST') {
       multiplayer.sendCopilotStatus(coPilotActive);
     }
+
+    // CRITICAL: Cleanly release ALL buttons on both players to prevent any stuck direction (e.g. running right forever)
+    if (emulator && emulator.releaseAllButtons) {
+      emulator.releaseAllButtons();
+    }
+    hostRemotePressed.clear();
+    hostCopilotPressed.clear();
+
     if (coPilotActive) {
-      const targetPlayer = remoteControlsP1 ? 1 : 2;
-      for (const pressedBtn of hostRemotePressed) {
-        emulator.buttonUp(targetPlayer, pressedBtn);
-      }
-      hostRemotePressed.clear();
       showToast('🤝 Modo Co-Pilot Ativo: Você assumiu o controle do boneco dela!');
     } else {
       showToast('🎮 Modo Co-Pilot Desativado: Controle devolvido para ela.');
     }
   }
 
-  const hostRemotePressed = new Set();
-  let lastRemoteInputTime = Date.now();
-
-  // Safety watchdog on host: if remote client stops sending inputs/sync for > 400ms while buttons are held, force release
+  // Safety watchdog on host: if remote client stops sending inputs/sync for > 400ms, force release all buttons
   setInterval(() => {
-    if (hostRemotePressed.size > 0 && Date.now() - lastRemoteInputTime > 400) {
+    if (!coPilotActive && Date.now() - lastRemoteInputTime > 400) {
       const targetPlayer = remoteControlsP1 ? 1 : 2;
-      for (const pressedBtn of hostRemotePressed) {
-        emulator.buttonUp(targetPlayer, pressedBtn);
+      if (hostRemotePressed.size > 0 || (emulator && emulator.releaseAllButtons)) {
+        if (emulator && emulator.releaseAllButtons) {
+          emulator.releaseAllButtons(targetPlayer);
+        }
+        hostRemotePressed.clear();
       }
-      hostRemotePressed.clear();
     }
   }, 100);
 
@@ -222,18 +228,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const targetPlayer = remoteControlsP1 ? 1 : 2;
       const activeSet = new Set(Array.isArray(activeList) ? activeList : []);
 
-      // Release any buttons that are no longer held on client
-      for (const pressedBtn of Array.from(hostRemotePressed)) {
-        if (!activeSet.has(pressedBtn)) {
-          hostRemotePressed.delete(pressedBtn);
-          emulator.buttonUp(targetPlayer, pressedBtn);
-        }
-      }
-      // Ensure any active buttons are pressed on emulator
-      for (const activeBtn of activeSet) {
-        if (!hostRemotePressed.has(activeBtn)) {
-          hostRemotePressed.add(activeBtn);
-          emulator.buttonDown(targetPlayer, activeBtn);
+      // Full exhaustive reconciliation across all 8 standard NES controller buttons
+      const allNesButtons = [
+        'BUTTON_A', 'BUTTON_B', 'BUTTON_SELECT', 'BUTTON_START',
+        'BUTTON_UP', 'BUTTON_DOWN', 'BUTTON_LEFT', 'BUTTON_RIGHT'
+      ];
+
+      for (const btn of allNesButtons) {
+        if (activeSet.has(btn)) {
+          hostRemotePressed.add(btn);
+          emulator.buttonDown(targetPlayer, btn);
+        } else {
+          if (hostRemotePressed.has(btn)) {
+            hostRemotePressed.delete(btn);
+          }
+          emulator.buttonUp(targetPlayer, btn);
         }
       }
     },
@@ -271,6 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const clientBanner = document.getElementById('copilotClientBanner');
     if (clientBanner) {
       clientBanner.style.display = active ? 'flex' : 'none';
+    }
+    if (multiplayer && multiplayer.clientActiveButtons) {
+      multiplayer.clientActiveButtons.clear();
     }
     if (active) {
       showToast('🤝 Seu amigo assumiu o controle para te ajudar! Aguarde um instante...', 4000);
@@ -414,6 +426,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // In Co-Pilot mode, Host inputs (Player 1) control her player directly
         if (coPilotActive && playerNum === 1) {
           localTarget = remoteControlsP1 ? 1 : 2;
+          if (isDown) hostCopilotPressed.add(buttonName);
+          else hostCopilotPressed.delete(buttonName);
         }
         if (isDown) emulator.buttonDown(localTarget, buttonName);
         else emulator.buttonUp(localTarget, buttonName);
@@ -677,6 +691,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       remoteControlsP1 = !remoteControlsP1;
       updatePlayerRolesUI();
+      if (emulator && emulator.releaseAllButtons) emulator.releaseAllButtons();
+      hostRemotePressed.clear();
+      hostCopilotPressed.clear();
       showToast(remoteControlsP1 
         ? '👑 Sandy agora controla o Player 1! (Você comanda o P2)' 
         : '🎮 Modo Normal: Hugo comanda o P1 e Sandy comanda o P2');

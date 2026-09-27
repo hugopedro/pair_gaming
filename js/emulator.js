@@ -478,6 +478,25 @@ class NesEmulator {
     }
   }
 
+  releaseAllButtons(player = null) {
+    if (!this.nes) return;
+    const allButtons = [
+      'BUTTON_A', 'BUTTON_B', 'BUTTON_SELECT', 'BUTTON_START',
+      'BUTTON_UP', 'BUTTON_DOWN', 'BUTTON_LEFT', 'BUTTON_RIGHT'
+    ];
+    const players = player ? [player] : [1, 2];
+    for (const p of players) {
+      for (const btn of allButtons) {
+        const btnCode = jsnes.Controller[btn];
+        if (btnCode !== undefined) {
+          try {
+            this.nes.buttonUp(p, btnCode);
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
   setVolume(vol) {
     this.volume = Math.max(0, Math.min(1, vol));
     if (this.audioGain && !this.isMuted) {
